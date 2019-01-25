@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-def agent():
+def server():
     print('Server started...')
 
 
