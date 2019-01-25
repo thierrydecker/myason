@@ -4,22 +4,11 @@
 
 import argparse
 
+import agent
+import server
+
 
 def main():
-    """The entry point of the script
-
-    This function is acting as an entry point for the script.
-
-    Args:
-
-    Returns:
-        None
-
-    Raises:
-        None
-
-    """
-
     # create the top-level parser
     parser = argparse.ArgumentParser(prog='myason')
     subparsers = parser.add_subparsers(help='either agent or server instance', dest='app')
@@ -29,7 +18,12 @@ def main():
     # create the parser for "server" command
     parser_server = subparsers.add_parser(name='server', help='server help')
     # parse arguments
-    print(parser.parse_args())
+    arguments = parser.parse_args()
+    # start the agent or the server
+    if arguments.app == 'agent':
+        agent.agent()
+    else:
+        server.server()
 
 
 if __name__ == '__main__':
