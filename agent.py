@@ -5,13 +5,13 @@ from scapy.all import *
 from threading import Thread, Event
 from time import sleep
 
+from scapy.layers.l2 import Ether
+
 
 class Sniffer(Thread):
-    def __init__(self, interface='Intel(R) Dual Band Wireless-AC 7265'):
+    def __init__(self, interface=None):
         super().__init__()
-
         self.daemon = True
-
         self.socket = None
         self.interface = interface
         self.stop_sniffer = Event()
@@ -20,7 +20,6 @@ class Sniffer(Thread):
         self.socket = conf.L2listen(
                 type=ETH_P_ALL,
                 iface=self.interface,
-                filter="ip"
         )
 
         sniff(
@@ -33,12 +32,14 @@ class Sniffer(Thread):
         self.stop_sniffer.set()
         super().join(timeout)
 
-    def should_stop_sniffer(self, packet):
+    def should_stop_sniffer(self, _):
         return self.stop_sniffer.isSet()
 
-    def print_packet(self, packet):
-        ip_layer = packet.getlayer(IP)
-        print("[!] New Packet: {src} -> {dst}".format(src=ip_layer.src, dst=ip_layer.dst))
+    @staticmethod
+    def print_packet(pkt):
+        if Ether in pkt:
+            layer = pkt.getlayer(Ether)
+            print("[!] src={}, dst={}, type={}".format(layer.src, layer.dst, layer.type))
 
 
 def agent():
@@ -53,9 +54,9 @@ def agent():
     except KeyboardInterrupt:
         print("[*] Stop sniffing")
         sniffer.join(2.0)
-
         if sniffer.isAlive():
             sniffer.socket.close()
+        print("[*] Sniffer stopped")
 
 
 def main():
