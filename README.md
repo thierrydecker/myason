@@ -1,5 +1,8 @@
 # Myason Project
 
+Myason aims to become a traffic engineering tool allowing, in the long term, a fine analysis
+of application flows transiting on a network of any size.
+
 ## Application usage:
 
     python myason.py [-h] {agent, server} ...
@@ -20,18 +23,18 @@
 
 Three threads are running:
 
-- A sniffer in charge of capturing the packets
+- A sniffer in charge of capturing the packets.
 
-- A packet processor in charge of the packets dissection
+- A packet processor in charge of the packets dissection.
 
-- A message processor in charge of the logging stuff
+- A message processor in charge of the logging stuff.
 
 Two FIFO queues are managed:
 
-- A packets queue filled by the sniffer and consumed by the packet processor
+- A packets queue filled by the sniffer and consumed by the packet processor.
 
 - A messages queue filled by the sniffer and the packet processor and consumed 
-by the message processor
+by the message processor.
 
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
