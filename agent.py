@@ -23,7 +23,7 @@ class Sniffer(Thread):
         )
         sniff(
                 opened_socket=self.socket,
-                prn=self.print_packet,
+                prn=self.process_packet,
                 stop_filter=self.should_stop_sniffer
         )
 
@@ -35,7 +35,7 @@ class Sniffer(Thread):
         return self.stop_sniffer.isSet()
 
     @staticmethod
-    def print_packet(pkt):
+    def process_packet(pkt):
         if Ether in pkt:
             layer = pkt.getlayer(Ether)
             print("[!] src={}, dst={}, type={}".format(layer.src, layer.dst, layer.type))
