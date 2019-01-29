@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from scapy.all import *
+from scapy.layers.l2 import Ether
+
 from threading import Thread, Event
 from time import sleep
-
-from scapy.layers.l2 import Ether
 
 
 class Sniffer(Thread):
