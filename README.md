@@ -1,6 +1,6 @@
 # Myason Project
 
-_**Application usage:**_
+## Application usage:
 
     python myason.py [-h] {agent, server} ...
 
@@ -13,6 +13,25 @@ _**Application usage:**_
     optional arguments:
 
         -h, --help show this help message and exit
+
+## Application architecture:
+
+### Agent:
+
+Three threads are running:
+
+- A sniffer in charge of capturing the packets
+
+- A packet processor in charge of the packets dissection
+
+- A message processor in charge of the logging stuff
+
+Two FIFO queues are managed:
+
+- A packets queue filled by the sniffer and consumed by the packet processor
+
+- A messages queue filled by the sniffer and the packet processor and consumed 
+by the message processor
 
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
