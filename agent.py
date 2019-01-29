@@ -11,29 +11,41 @@ from time import sleep
 
 
 class Processor(Thread):
-    def __init__(self, packets, stop_processor):
+    def __init__(self, packets):
         super().__init__()
-        self.packets = packets
-        self.stop_processor = stop_processor
+        self._packets = packets
+        self._stop_processor = Event()
 
     def run(self):
-        while not self.stop_processor.isSet():
+        print("[!] Packet processor is up and running...")
+        while not self._stop_processor.isSet():
+            print("[!] {} packets in queue...".format(self._packets.qsize()))
             try:
-                pkt = self.packets.get(block=False)
+                pkt = self._packets.get(block=False)
                 if pkt is not None:
-                    self.process_packet(pkt)
+                    self._process_packet(pkt)
             except queue.Empty:
-                time.sleep(0.5)
+                time.sleep(1)
+
+    def join(self, timeout=None):
+        self._stop_processor.set()
+        self._clean_up()
+        print("[!] Packet processor is stopped...")
+        super().join(timeout)
+
+    def _clean_up(self):
+        print("[!] Cleaning up the queue...")
         while True:
             try:
-                pkt = self.packets.get(block=False)
+                pkt = self._packets.get(block=False)
                 if pkt is not None:
-                    self.process_packet(pkt)
+                    self._process_packet(pkt)
             except queue.Empty:
                 break
+        print("[!] Queue has been cleaned...")
 
     @staticmethod
-    def process_packet(pkt):
+    def _process_packet(pkt):
         if Ether in pkt:
             layer = pkt.getlayer(Ether)
             print("[>] src={}, dst={}, type={}".format(layer.src, layer.dst, layer.type))
@@ -53,28 +65,29 @@ class Sniffer(Thread):
                 type=ETH_P_ALL,
                 iface=self.interface,
         )
+        print("[!] Sniffer is up and running...")
         sniff(
                 opened_socket=self.socket,
-                prn=self.process_packet,
-                stop_filter=self.should_stop_sniffer
+                prn=self._process_packet,
+                stop_filter=self._should_stop_sniffer
         )
 
     def join(self, timeout=None):
         self.stop_sniffer.set()
+        print("[!] Sniffer is stopped...")
         super().join(timeout)
 
-    def should_stop_sniffer(self, _):
+    def _should_stop_sniffer(self, _):
         return self.stop_sniffer.isSet()
 
-    def process_packet(self, pkt):
+    def _process_packet(self, pkt):
         if Ether in pkt:
             self.pkts.put(pkt)
 
 
 def agent():
     pkt_queue = Queue()
-    stp_prc = Event()
-    processor = Processor(pkt_queue, stp_prc)
+    processor = Processor(pkt_queue)
     processor.start()
     sniffer = Sniffer(pkt_queue, interface=None)
     sniffer.start()
@@ -82,11 +95,10 @@ def agent():
         while True:
             sleep(100)
     except KeyboardInterrupt:
-        sniffer.join(2.0)
+        sniffer.join()
         if sniffer.isAlive():
             sniffer.socket.close()
-        stp_prc.set()
-        processor.join(2.0)
+        processor.join()
 
 
 def main():
