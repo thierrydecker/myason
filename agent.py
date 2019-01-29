@@ -21,7 +21,6 @@ class Sniffer(Thread):
                 type=ETH_P_ALL,
                 iface=self.interface,
         )
-
         sniff(
                 opened_socket=self.socket,
                 prn=self.print_packet,
@@ -44,10 +43,8 @@ class Sniffer(Thread):
 
 def agent():
     sniffer = Sniffer()
-
     print("[*] Start sniffing...")
     sniffer.start()
-
     try:
         while True:
             sleep(100)
