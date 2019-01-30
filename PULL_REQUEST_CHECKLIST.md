@@ -1,6 +1,6 @@
 # Our pull request checklist
 
-This is the checklist that we try to go through for every single pull request that I get.
+This is the checklist that we try to go through for every single pull request that we get.
 
 If you're wondering why it takes so long for me to accept pull requests, this is why.
 
