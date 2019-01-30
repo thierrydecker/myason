@@ -50,12 +50,12 @@ This usually takes several commits on top of the original PR.
 
 - If any new functions/classes are added, do they contain docstrings?
 - If complex blocks of code are present, do they content comments?
-- If any new features are added, are they in `README.md`?
+- If any new features are added, are they in [README.md](README.md)?
 
 ## Credit the Authors
 
-- Add name and URL to `AUTHORS.md`.
-- Copy and paste title and PR number into `HISTORY.md`.
+- Add name and URL to [AUTHORS.md](AUTHORS.md).
+- Copy and paste title and PR number into [HISTORY.md](HISTORY.md).
 - Thank them for their hard work.
 
 ## Close Issues
