@@ -3,6 +3,15 @@
 Myason aims to become a traffic engineering tool allowing, in the long term, a fine analysis
 of application flows transiting on a network of any size.
 
+## Myason documents
+
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Contributions](CONTRIBUTING.md)
+- [Licence](LICENCE.md)
+- [Authors summary](AUTHORS.md)
+- [Project history](HISTORY.md)
+
+
 ## Application usage:
 
     python myason.py [-h] {agent, server} ...
