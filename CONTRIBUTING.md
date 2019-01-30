@@ -32,8 +32,8 @@ If your problem is Python, Scapy, Twisted specific, Stack Overflow is worth cons
 
 * Ensure cross-platform compatibility for every change that's accepted. Windows, Mac,
 Debian & Ubuntu Linux.
-* Ensure that code that goes into core meets all requirements in this checklist:
-https://gist.github.com/audreyr/4feef90445b9680475f2
+* Ensure that code that goes into core meets all requirements in 
+[this checklist](PULL_REQUEST_CHECKLIST.md)
 * Create issues for any major changes and enhancements that you wish to make.
 Discuss things transparently and get community feedback.
 * Don't add any classes to the codebase unless absolutely needed. Prefer using functions.
