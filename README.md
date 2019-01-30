@@ -53,5 +53,59 @@ These threads communicate to each other by the mean of two thread-safe FIFO queu
 - A messages queue filled by the sniffer and the packet processor and consumed 
 by the message processor.
 
+### Packet processor
+
+Everything begins with the **cache** and ends with the **exporter**.
+
+The **cache** has a couple of basic jobs to do:
+
+- Interrogate data header of the packet and either mark it as a new flow or add it to part of an existing flow.
+- Keep track of the flow timers and other factors, and when a flow is considered _**complete**_,
+send it to the exporter (if one exists) and delete the flow. This process is known as flow aging.
+
+The cache only keeps information on current and non-expired flows.
+
+Each flow is defined as having values that match the followinf 7 fields uniquely:
+
+- Source IP address
+- Destination IP address
+- Source port number
+- Destination port number
+- Layer 3 protocol type
+- ToS byte value
+- IfIndex number, also called the logical interface number
+
+When a packet is processed and **all seven of these fileds match** an existing flow, it's not considered a
+new flow but part of an existing flow. If any part of these seven fields doesn't exactly match an existing
+flow, it's then a new flow and a new flow record is created.
+
+These above fields are the **key fields**.
+
+The following fields are **non-key fields** and are stored in the flow record identified by the **key fields**.
+
+- Bytes
+- Packets
+- Output interface IfIndex
+- Flow start and finish time
+- Next hop IP
+- Network masks
+- TCP flags
+- Source and destination BGP AS numbers
+
+The **exporter** 
+
+The agent may have a limited amount of memory to store information, so at some point the device has to make
+room for new flows. This is where flow aging and exporting comes into play.
+
+The packet processor keeps track of of several factors regarding the flows and the status of the cache itself.
+
+Here are the factors the agent uses to age flows and either delete them or export to a collector and
+then delete. These are listed in order of precedence:
+
+- Cache maximum size (max number of flow records).
+- A TCP connection has been terminated by a RST (reset) or FIN (finish) flag in the flow.
+- An active flow timer or inactive flow timer limit is reached.
+
+
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
