@@ -5,7 +5,10 @@
 import queue
 
 from scapy.all import *
+from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP
+from scapy.layers.inet import TCP
+from scapy.layers.inet import UDP
 
 from threading import Thread, Event
 from queue import Queue
@@ -81,9 +84,27 @@ class Processor(Thread):
         self.messages.put("The packets queue has been cleaned...")
 
     def process_packet(self, pkt):
+        message = ""
         if IP in pkt:
             layer = pkt.getlayer(IP)
-            self.messages.put("src={}, dst={}, proto={}".format(layer.src, layer.dst, layer.proto))
+            message += "src_ip={}, dst_ip={}, proto={}, length={}".format(
+                    layer.src,
+                    layer.dst,
+                    layer.proto,
+                    len(raw(pkt)))
+            if TCP in pkt:
+                layer = pkt.getlayer(TCP)
+                message += ", src_port={}, dst_port={}, flags={}".format(
+                        layer.sport,
+                        layer.dport,
+                        layer.flags)
+            if UDP in pkt:
+                layer = pkt.getlayer(UDP)
+                message += " src_port={}, dst_port={}".format(
+                        layer.sport,
+                        layer.dport)
+        if message != "":
+            self.messages.put(message)
 
 
 class Sniffer(Thread):
@@ -117,7 +138,7 @@ class Sniffer(Thread):
         return self.stop.isSet()
 
     def process_packet(self, pkt):
-        if IP in pkt:
+        if Ether in pkt:
             self.pkts.put(pkt)
 
 
