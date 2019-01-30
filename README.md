@@ -11,8 +11,16 @@ of application flows transiting on a network of any size.
 - [Authors summary](AUTHORS.md)
 - [Project history](HISTORY.md)
 
+## Technologies
 
-## Application usage:
+Myason developement is currently based on following technologies:
+
+- [Python (3.7)](https://www.python.org)
+- [Scapy (2.4.2)](https://scapy.net/)
+
+We strongly encourage using virtual environnements in the developement process. 
+
+## Application usage
 
     python myason.py [-h] {agent, server} ...
 
@@ -26,9 +34,9 @@ of application flows transiting on a network of any size.
 
         -h, --help show this help message and exit
 
-## Application architecture:
+## Application architecture
 
-### Agent:
+### Agent
 
 Three threads are running:
 
@@ -38,7 +46,7 @@ Three threads are running:
 
 - A message processor in charge of the logging stuff.
 
-Two FIFO queues are managed:
+These threads communicate to each other by the mean of two thread-safe FIFO queues:
 
 - A packets queue filled by the sniffer and consumed by the packet processor.
 
