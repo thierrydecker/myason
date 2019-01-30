@@ -63,11 +63,11 @@ class Processor(Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self._clean_up()
+        self.clean_up()
         self.messages.put("[!] Packet processor is stopped...")
         super().join(timeout)
 
-    def _clean_up(self):
+    def clean_up(self):
         self.messages.put("[!] Cleaning up the packets queue...")
         while True:
             try:
