@@ -54,7 +54,7 @@ class Processor(Thread):
         self.stop = Event()
 
     def run(self):
-        self.messages.put("[!] Packets processor is up and running...")
+        self.messages.put("Packets processor is up and running...")
         while not self.stop.isSet():
             try:
                 pkt = self.packets.get(block=False)
@@ -66,11 +66,11 @@ class Processor(Thread):
     def join(self, timeout=None):
         self.stop.set()
         self.clean_up()
-        self.messages.put("[!] Packet processor is stopped...")
+        self.messages.put("Packet processor is stopped...")
         super().join(timeout)
 
     def clean_up(self):
-        self.messages.put("[!] Cleaning up the packets queue...")
+        self.messages.put("Cleaning up the packets queue...")
         while True:
             try:
                 pkt = self.packets.get(block=False)
@@ -78,12 +78,12 @@ class Processor(Thread):
                     self.process_packet(pkt)
             except queue.Empty:
                 break
-        self.messages.put("[!] The packets queue has been cleaned...")
+        self.messages.put("The packets queue has been cleaned...")
 
     def process_packet(self, pkt):
         if IP in pkt:
             layer = pkt.getlayer(IP)
-            self.messages.put("[>] src={}, dst={}, proto={}".format(layer.src, layer.dst, layer.proto))
+            self.messages.put("src={}, dst={}, proto={}".format(layer.src, layer.dst, layer.proto))
 
 
 class Sniffer(Thread):
@@ -101,7 +101,7 @@ class Sniffer(Thread):
                 type=ETH_P_ALL,
                 iface=self.interface,
         )
-        self.messages.put("[!] Sniffer is up and running...")
+        self.messages.put("Sniffer is up and running...")
         sniff(
                 opened_socket=self.socket,
                 prn=self.process_packet,
@@ -110,7 +110,7 @@ class Sniffer(Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.messages.put("[!] Sniffer is stopped...")
+        self.messages.put("Sniffer is stopped...")
         super().join(timeout)
 
     def should_stop_sniffer(self, _):
