@@ -55,6 +55,7 @@ class Processor(Thread):
         self.packets = packets
         self.messages = messages
         self.stop = Event()
+        self.cache = {}
 
     def run(self):
         self.messages.put("Packets processor is up and running...")
@@ -84,27 +85,43 @@ class Processor(Thread):
         self.messages.put("The packets queue has been cleaned...")
 
     def process_packet(self, pkt):
-        message = ""
+        # IP fields
+        src_ip = None
+        dst_ip = None
+        proto = None
+        tos = None
+        raw_length = None
+        length = None
+        # TCP/UDP fields
+        sport = None
+        dport = None
+        # TCP fields
+        flags = None
         if IP in pkt:
             layer = pkt.getlayer(IP)
-            message += "src_ip={}, dst_ip={}, proto={}, length={}".format(
-                    layer.src,
-                    layer.dst,
-                    layer.proto,
-                    len(raw(pkt)))
+            src_ip = layer.src
+            dst_ip = layer.dst
+            proto = layer.proto
+            tos = layer.tos
+            raw_length = len(raw(pkt))
+            length = layer.len
             if TCP in pkt:
                 layer = pkt.getlayer(TCP)
-                message += ", src_port={}, dst_port={}, flags={}".format(
-                        layer.sport,
-                        layer.dport,
-                        layer.flags)
+                sport = layer.sport
+                dport = layer.dport
+                flags = layer.flags
             if UDP in pkt:
                 layer = pkt.getlayer(UDP)
-                message += " src_port={}, dst_port={}".format(
-                        layer.sport,
-                        layer.dport)
-        if message != "":
-            self.messages.put(message)
+                sport = layer.sport
+                dport = layer.dport
+            flow_id = ','.join((src_ip, dst_ip, str(sport), str(dport), str(proto), str(tos)))
+            self.messages.put("flow_id={}".format(flow_id))
+            self.messages.put(
+                    "src_ip={}, dst_ip={}, proto={}, tos={}, raw_length={}, length={}, sport={}, dport={}, "
+                    "flags={}".format(
+                            src_ip, dst_ip, proto, tos, raw_length, length, sport, dport, flags
+                    )
+            )
 
 
 class Sniffer(Thread):
