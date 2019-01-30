@@ -46,8 +46,8 @@ Unsure where to begin contributing to Myason?
 
 You can start by looking through the beginner and help-wanted issues:
 
-* Beginner issues: issues which should only require a few lines of code, and a test or two.
-* Help wanted issues: issues which should be a bit more involved than beginner issues.
+* **Beginner issues**: issues which should only require a few lines of code, and a test or two.
+* **Help wanted issues**: issues which should be a bit more involved than beginner issues.
 
 Both issue lists are sorted by total number of comments.
 
