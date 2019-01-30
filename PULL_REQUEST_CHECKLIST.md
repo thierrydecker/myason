@@ -2,16 +2,16 @@
 
 This is the checklist that we try to go through for every single pull request that we get.
 
-If you're wondering why it takes so long for me to accept pull requests, this is why.
+If you're wondering why it takes so long for us to accept pull requests, this is why.
 
 ## General
 
-- Is this change useful to me, or something that I think will benefit others greatly?
+- Is this change useful to us, or something that we think will benefit others greatly?
 - Check for overlap with other PRs.
 - Think carefully about the long-term implications of the change.
 - How will it affect existing projects that are dependent on this?
-- How will it affect my projects?
-- If this is complicated, do I really want to maintain it forever?
+- How will it affect our projects?
+- If this is complicated, do we really want to maintain it forever?
 - Is there any way it could be implemented as a separate package, for better modularity and flexibility?
 
 ## Check the Code
@@ -22,7 +22,8 @@ If you're wondering why it takes so long for me to accept pull requests, this is
 - Review the changes carefully, line by line.
 - Make sure we understand every single part of every line.
 - Learn whatever we do not know yet.
-- Take the time to get things right. PRs almost always require additional improvements to meet the bar for quality.
+- Take the time to get things right. PRs almost always require additional improvements to meet the bar
+for quality.
 - Be very strict about quality.
 
 This usually takes several commits on top of the original PR.
@@ -48,6 +49,7 @@ This usually takes several commits on top of the original PR.
   - Write the docs yourself.
 
 - If any new functions/classes are added, do they contain docstrings?
+- If complex blocks of code are present, do they content comments?
 - If any new features are added, are they in `README.md`?
 
 ## Credit the Authors
@@ -66,4 +68,3 @@ This usually takes several commits on top of the original PR.
 
 - Decide whether the changes in master make sense as a major, minor, or patch release.
 - Look at the clock. If you're tired, release later when you have time to deal with release problems.
-- Then follow all the steps in [My PyPI Release Checklist](https://gist.github.com/audreyr/5990987)
