@@ -55,7 +55,7 @@ class Processor(Thread):
         self.messages = messages
         self.stop = Event()
         self.cache = {}
-        self.cache_limit = 200
+        self.cache_limit = 500
         self.active_timeout = 180
         self.inactive_timeout = 60
 
