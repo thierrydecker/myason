@@ -40,6 +40,10 @@ Discuss things transparently and get community feedback.
 * Keep feature versions as small as possible, preferably one new feature per version.
 * Be welcoming to newcomers and encourage diverse new contributors from all backgrounds.
 
+# Our workflow
+
+![alt text](images/myason_workflow.jpg)
+
 # Your first Contribution
 
 Unsure where to begin contributing to Myason?
