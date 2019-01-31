@@ -77,6 +77,33 @@ In addition, just like github flow, our workflow is based on a few principles to
 
 This allows us to ensure consistency across the flow.
 
+What is happening in practice?
+
+If it does not exist yet, you must first create the develop branch:
+
+    $ git branch develop
+    $ git push -u origin develop
+
+Now, let's imagine Bob is wishing to start a new feature. It must create a separate branch for each feature:
+
+    $ git checkout -b feature/awesome-feature develop
+
+He develops on his side:
+
+    $ git add <files>
+    $ git commit -m "feature (menu): add items"
+    $ git pull origin develop
+    $ git push origin feature/awesome-feature
+
+Then Bob creates a Pull-Request and sends in Quality Check.
+
+Once validated, its code will be migrated to develop and put into production (master tagged version).
+
+For versioning the master branch, we use [Semantic Versioning 2.0.0](https://semver.org/).
+
+So our workflow is pretty close to git flow because it's like a git flow release contains only one feature.
+But just as close to github flow, because the main branch is proddable at any time.
+
 # Your first Contribution
 
 Unsure where to begin contributing to Myason?
