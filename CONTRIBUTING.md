@@ -68,14 +68,14 @@ You will notice the appearance of a bugfix branch and the disappearance of the r
 
 The stabilization phase is done on the feature and bugfix branches.
 The big advantage is that at any time, a functional set on develop can be put into production.
-On the other hand with gitFlow, if 3 features are found on develop, that one pulls a release and that the
+On the other hand with gitFlow, if 3 features are found on develop, one pulls a release and the
 tests invalidate one of the 3 features, it is the whole of the release which is found blocked.
 
 In addition, just like github flow, our workflow is based on a few principles to respect, three in particular:
 
-- Everything about develop is proddable
+- Everything in develop is proddable
 - No direct commit on develop
-- Each branch of feature or bugfix undergoes a quality pass (functional tests, code review).
+- Each branch of feature or bugfix undergoes a quality pass (functional tests, code review)
 
 This allows us to ensure consistency across the flow.
 
