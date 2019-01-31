@@ -86,6 +86,8 @@ class Processor(Thread):
         self.messages.put("The packets queue has been cleaned...")
 
     def process_packet(self, pkt):
+
+        # Packets dissection
         if IP in pkt:
             src_ip = pkt[IP].src
             dst_ip = pkt[IP].dst
@@ -110,9 +112,27 @@ class Processor(Thread):
             flags = None
         else:
             return
-        key_field = f"src_ip={src_ip}, dst_ip={dst_ip},proto={proto},sport={sport},dport={dport},tos={tos}"
-        non_key_fields = f"flags={flags},length={length}"
-        self.messages.put(key_field + " - " + non_key_fields)
+        key_field = f"{src_ip},{dst_ip},{proto},{sport},{dport},{tos}"
+
+        # Cache management
+        if key_field in self.cache:
+            # Update cache entry
+            self.cache[key_field]["bytes"] += length
+            self.cache[key_field]["packets"] += 1
+            self.cache[key_field]["end_time"] = time.time()
+            self.cache[key_field]["flags"] = str(flags)
+        else:
+            # Add cache entry
+            non_key_fields = {
+                "bytes": length,
+                "packets": 1,
+                "start_time": time.time(),
+                "end_time": time.time(),
+                "flags": str(flags),
+            }
+            self.cache[key_field] = non_key_fields
+
+        self.messages.put(self.cache)
 
 
 class Sniffer(Thread):
