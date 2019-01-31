@@ -44,6 +44,41 @@ Discuss things transparently and get community feedback.
 
 ![alt text](images/myason_workflow.jpg)
 
+Our workflow is an hybrid of both **git flow** and **github flow**, implement as **OVH UX Flow**.
+
+Just like git flow, there are two main branches:
+
+**master**: Which mainly only holds tags and is a reflection of the production.
+
+**develop**:which serves as a buffer for features and bugfix.
+It is stable and we can start a production at any moment.
+It's a bit like the release branch but already stable.
+The name is therefore probably not adequate.
+
+and 3 secondary branches:
+
+**feature / XYZ**: Similar to gitflow.
+
+**bugfix / XYZ**: this branch is used to fix bugs whose criticality does not require a hotfix,
+such as a wrong color, offset alignment etc.
+
+**hotfix / XYZ**: Similar to gitflow. It allows to manage emergencies since master.
+
+You will notice the appearance of a bugfix branch and the disappearance of the release branch.
+
+The stabilization phase is done on the feature and bugfix branches.
+The big advantage is that at any time, a functional set on develop can be put into production.
+On the other hand with gitFlow, if 3 features are found on develop, that one pulls a release and that the
+tests invalidate one of the 3 features, it is the whole of the release which is found blocked.
+
+In addition, just like github flow, our workflow is based on a few principles to respect, three in particular:
+
+- Everything about develop is proddable
+- No direct commit on develop
+- Each branch of feature or bugfix undergoes a quality pass (functional tests, code review).
+
+This allows us to ensure consistency across the flow.
+
 # Your first Contribution
 
 Unsure where to begin contributing to Myason?
