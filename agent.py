@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 
-import queue
-
 from scapy.all import *
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP
@@ -11,8 +9,8 @@ from scapy.layers.inet6 import IPv6
 from scapy.layers.inet import TCP
 from scapy.layers.inet import UDP
 
+import queue
 from threading import Thread, Event
-from queue import Queue
 from time import sleep
 
 
@@ -197,10 +195,10 @@ class Sniffer(Thread):
 
 
 def agent():
-    msg_queue = Queue()
+    msg_queue = queue.Queue()
+    pkt_queue = queue.Queue()
     messenger = Messenger(msg_queue)
     messenger.start()
-    pkt_queue = Queue()
     processor = Processor(pkt_queue, msg_queue)
     processor.start()
     sniffer = Sniffer(pkt_queue, msg_queue, interface=None)
