@@ -57,6 +57,9 @@ class Processor(Thread):
         self.messages = messages
         self.stop = Event()
         self.cache = {}
+        self.cache_limit = 200
+        self.active_timeout = 180
+        self.inactive_timeout = 60
 
     def run(self):
         self.messages.put("Packets processor is up and running...")
@@ -86,7 +89,6 @@ class Processor(Thread):
         self.messages.put("The packets queue has been cleaned...")
 
     def process_packet(self, pkt):
-
         # Packets dissection
         if IP in pkt:
             src_ip = pkt[IP].src
@@ -113,7 +115,6 @@ class Processor(Thread):
         else:
             return
         key_field = f"{src_ip},{dst_ip},{proto},{sport},{dport},{tos}"
-
         # Cache management
         if key_field in self.cache:
             # Update cache entry
@@ -131,8 +132,33 @@ class Processor(Thread):
                 "flags": str(flags),
             }
             self.cache[key_field] = non_key_fields
-
-        self.messages.put(self.cache)
+        # Cache aging
+        cache_temp = dict(self.cache)
+        for key_field in cache_temp.keys():
+            start_time = cache_temp[key_field]["start_time"]
+            end_time = cache_temp[key_field]["end_time"]
+            flags = cache_temp[key_field]["flags"]
+            aged = False
+            reason = 'Unknow'
+            if self.stop.is_set():
+                aged = True
+                reason = 'Stop asked'
+            elif len(cache_temp) > self.cache_limit:
+                aged = True
+                reason = 'Cache limit'
+            elif 'F' in flags or 'R' in flags:
+                aged = True
+                reason = 'TCP end session'
+            elif end_time - start_time > self.active_timeout:
+                aged = True
+                reason = 'Active timeout'
+            elif time.time() - end_time > self.inactive_timeout:
+                aged = True
+                reason = 'Inactive timeout'
+            if aged:
+                self.messages.put(
+                        "Reason=" + reason + " - " + key_field + " - " + str(self.cache.pop(key_field, None))
+                )
 
 
 class Sniffer(Thread):
