@@ -7,6 +7,7 @@ import queue
 from scapy.all import *
 from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP
+from scapy.layers.inet6 import IPv6
 from scapy.layers.inet import TCP
 from scapy.layers.inet import UDP
 
@@ -85,43 +86,33 @@ class Processor(Thread):
         self.messages.put("The packets queue has been cleaned...")
 
     def process_packet(self, pkt):
-        # IP fields
-        src_ip = None
-        dst_ip = None
-        proto = None
-        tos = None
-        raw_length = None
-        length = None
-        # TCP/UDP fields
-        sport = None
-        dport = None
-        # TCP fields
-        flags = None
         if IP in pkt:
-            layer = pkt.getlayer(IP)
-            src_ip = layer.src
-            dst_ip = layer.dst
-            proto = layer.proto
-            tos = layer.tos
-            raw_length = len(raw(pkt))
-            length = layer.len
-            if TCP in pkt:
-                layer = pkt.getlayer(TCP)
-                sport = layer.sport
-                dport = layer.dport
-                flags = layer.flags
-            if UDP in pkt:
-                layer = pkt.getlayer(UDP)
-                sport = layer.sport
-                dport = layer.dport
-            flow_id = ','.join((src_ip, dst_ip, str(sport), str(dport), str(proto), str(tos)))
-            self.messages.put("flow_id={}".format(flow_id))
-            self.messages.put(
-                    "src_ip={}, dst_ip={}, proto={}, tos={}, raw_length={}, length={}, sport={}, dport={}, "
-                    "flags={}".format(
-                            src_ip, dst_ip, proto, tos, raw_length, length, sport, dport, flags
-                    )
-            )
+            src_ip = pkt[IP].src
+            dst_ip = pkt[IP].dst
+            proto = pkt[IP].proto
+            tos = pkt[IP].tos
+            length = pkt[IP].len
+        elif IPv6 in pkt:
+            src_ip = pkt[IPv6].src
+            dst_ip = pkt[IPv6].dst
+            proto = pkt[IPv6].nh
+            tos = pkt[IPv6].tc
+            length = pkt[IPv6].plen
+        else:
+            return
+        if TCP in pkt:
+            sport = pkt[TCP].sport
+            dport = pkt[TCP].dport
+            flags = pkt[TCP].flags
+        elif UDP in pkt:
+            sport = pkt[UDP].sport
+            dport = pkt[UDP].dport
+            flags = None
+        else:
+            return
+        key_field = f"src_ip={src_ip}, dst_ip={dst_ip},proto={proto},sport={sport},dport={dport},tos={tos}"
+        non_key_fields = f"flags={flags},length={length}"
+        self.messages.put(key_field + " - " + non_key_fields)
 
 
 class Sniffer(Thread):
