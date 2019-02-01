@@ -56,8 +56,8 @@ class Processor(Thread):
         self.stop = Event()
         self.cache = {}
         self.cache_limit = 500
-        self.active_timeout = 180
-        self.inactive_timeout = 60
+        self.active_timeout = 360
+        self.inactive_timeout = 120
 
     def run(self):
         self.messages.put("Packets processor is up and running...")
@@ -131,6 +131,13 @@ class Processor(Thread):
             }
             self.cache[key_field] = non_key_fields
         # Cache aging
+        if len(self.cache) > self.cache_limit:
+            # Export oldest entry
+            cache_temp = sorted(((self.cache[key]["start_time"], key) for key in self.cache.keys()))
+            reason = 'Cache limit'
+            self.messages.put(
+                    "Reason=" + reason + " - " + cache_temp[0][1] + " - " + str(self.cache.pop(cache_temp[0][1], None))
+            )
         cache_temp = dict(self.cache)
         for key_field in cache_temp.keys():
             start_time = cache_temp[key_field]["start_time"]
@@ -139,18 +146,19 @@ class Processor(Thread):
             aged = False
             reason = 'Unknow'
             if self.stop.is_set():
+                # Export the entry as the agent exits
                 aged = True
                 reason = 'Stop asked'
-            elif len(cache_temp) > self.cache_limit:
-                aged = True
-                reason = 'Cache limit'
             elif 'F' in flags or 'R' in flags:
+                # Export the entry as TCP session is closed
                 aged = True
                 reason = 'TCP end session'
             elif end_time - start_time > self.active_timeout:
+                # Export the entry because of max activity
                 aged = True
                 reason = 'Active timeout'
             elif time.time() - end_time > self.inactive_timeout:
+                # Export the entry because of max inactivity
                 aged = True
                 reason = 'Inactive timeout'
             if aged:
