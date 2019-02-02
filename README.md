@@ -17,6 +17,7 @@ Myason developement is currently based on following technologies:
 
 - [Python (3.7)](https://www.python.org)
 - [Scapy (2.4.2)](https://scapy.net/)
+- [PyYaml (3.13)](https://pyyaml.org/wiki/PyYAML)
 
 We strongly encourage using virtual environnements in the developement process. 
 
