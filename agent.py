@@ -77,9 +77,9 @@ class Processor(threading.Thread):
         self.messages = messages
         self.stop = threading.Event()
         self.cache = {}
-        self.cache_limit = 500
-        self.active_timeout = 360
-        self.inactive_timeout = 120
+        self.cache_limit = 1024
+        self.active_timeout = 1800
+        self.inactive_timeout = 15
 
     def run(self):
         self.messages.put(("INFO", "Processor: up and running..."))
@@ -158,8 +158,8 @@ class Processor(threading.Thread):
         # Cache aging
         if len(self.cache) > self.cache_limit:
             # Export oldest entry
+            self.messages.put(("WARNING", "Processor: Cache size exceeded. Verify settings..."))
             cache_temp = sorted(((self.cache[key]["start_time"], key) for key in self.cache.keys()))
-
             entry = {cache_temp[0][1]: self.cache.pop(cache_temp[0][1], None)}
             self.messages.put(("DEBUG", entry))
         cache_temp = dict(self.cache)
