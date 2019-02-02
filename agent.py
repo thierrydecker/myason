@@ -12,6 +12,9 @@ from scapy.layers.inet import UDP
 import queue
 import threading
 import time
+import yaml
+import logging
+import logging.config
 
 
 class Messenger(threading.Thread):
@@ -19,8 +22,14 @@ class Messenger(threading.Thread):
         super().__init__()
         self.messages = messages
         self.stop = threading.Event()
+        with open("logger.yml") as conf_fn:
+            self.conf = conf_fn.read()
+        self.conf = yaml.load(self.conf)
+        logging.config.dictConfig(self.conf)
+        self.logger = logging.getLogger('agent')
 
     def run(self):
+        self.logger.debug('Messenger is up and running...')
         while not self.stop.isSet():
             try:
                 msg = self.messages.get(block=False)
@@ -31,10 +40,13 @@ class Messenger(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
+        self.logger.debug('Messenger is stopping...')
         self.clean_up()
         super().join(timeout)
+        self.logger.debug('Messenger stopped...')
 
     def clean_up(self):
+        self.logger.debug('Messenger is processing remaining messages...')
         while True:
             try:
                 pkt = self.messages.get(block=False)
@@ -43,9 +55,8 @@ class Messenger(threading.Thread):
             except queue.Empty:
                 break
 
-    @staticmethod
-    def process_message(msg):
-        print("{}".format(msg))
+    def process_message(self, msg):
+        self.logger.debug(msg)
 
 
 class Processor(threading.Thread):
