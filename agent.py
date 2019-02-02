@@ -29,7 +29,7 @@ class Messenger(threading.Thread):
         self.logger = logging.getLogger('agent')
 
     def run(self):
-        self.logger.debug('Messenger is up and running...')
+        self.logger.info('Messenger: up and running...')
         while not self.stop.isSet():
             try:
                 msg = self.messages.get(block=False)
@@ -40,13 +40,13 @@ class Messenger(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.logger.debug('Messenger is stopping...')
+        self.logger.info('Messenger: stopping...')
         self.clean_up()
         super().join(timeout)
-        self.logger.debug('Messenger stopped...')
+        self.logger.info('Messenger: stopped...')
 
     def clean_up(self):
-        self.logger.debug('Messenger is processing remaining messages...')
+        self.logger.info('Messenger: processing remaining messages...')
         while True:
             try:
                 pkt = self.messages.get(block=False)
@@ -82,7 +82,7 @@ class Processor(threading.Thread):
         self.inactive_timeout = 120
 
     def run(self):
-        self.messages.put(("DEBUG", "Packets processor is up and running..."))
+        self.messages.put(("INFO", "Processor: up and running..."))
         while not self.stop.isSet():
             try:
                 pkt = self.packets.get(block=False)
@@ -93,12 +93,13 @@ class Processor(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
+        self.messages.put(("INFO", 'Processor: stopping...'))
         self.clean_up()
-        self.messages.put(("DEBUG", "Packet processor is stopped..."))
         super().join(timeout)
+        self.messages.put(("INFO", "Processor: stopped..."))
 
     def clean_up(self):
-        self.messages.put(("DEBUG", "Cleaning up the packets queue..."))
+        self.messages.put(("INFO", "Processor: cleaning up the packets queue..."))
         while True:
             try:
                 pkt = self.packets.get(block=False)
@@ -106,7 +107,7 @@ class Processor(threading.Thread):
                     self.process_packet(pkt)
             except queue.Empty:
                 break
-        self.messages.put(("DEBUG", "The packets queue has been cleaned..."))
+        self.messages.put(("INFO", "Processor: packets queue has been cleaned..."))
 
     def process_packet(self, pkt):
         # Packets dissection
@@ -158,38 +159,30 @@ class Processor(threading.Thread):
         if len(self.cache) > self.cache_limit:
             # Export oldest entry
             cache_temp = sorted(((self.cache[key]["start_time"], key) for key in self.cache.keys()))
-            reason = 'Cache limit'
-            self.messages.put(
-                    ("DEBUG", "Reason=" + reason + " - " + cache_temp[0][1] + " - " + str(
-                        self.cache.pop(cache_temp[0][1], None)))
-            )
+
+            entry = {cache_temp[0][1]: self.cache.pop(cache_temp[0][1], None)}
+            self.messages.put(("DEBUG", entry))
         cache_temp = dict(self.cache)
         for key_field in cache_temp.keys():
             start_time = cache_temp[key_field]["start_time"]
             end_time = cache_temp[key_field]["end_time"]
             flags = cache_temp[key_field]["flags"]
             aged = False
-            reason = 'Unknow'
             if self.stop.is_set():
                 # Export the entry as the agent exits
                 aged = True
-                reason = 'Stop asked'
             elif 'F' in flags or 'R' in flags:
                 # Export the entry as TCP session is closed
                 aged = True
-                reason = 'TCP end session'
             elif end_time - start_time > self.active_timeout:
                 # Export the entry because of max activity
                 aged = True
-                reason = 'Active timeout'
             elif time.time() - end_time > self.inactive_timeout:
                 # Export the entry because of max inactivity
                 aged = True
-                reason = 'Inactive timeout'
             if aged:
-                self.messages.put(
-                        ("DEBUG", "Reason=" + reason + " - " + key_field + " - " + str(self.cache.pop(key_field, None)))
-                )
+                entry = {key_field: self.cache.pop(key_field, None)}
+                self.messages.put(("DEBUG", entry))
 
 
 class Sniffer(threading.Thread):
@@ -207,7 +200,7 @@ class Sniffer(threading.Thread):
                 type=ETH_P_ALL,
                 iface=self.interface,
         )
-        self.messages.put(("DEBUG", "Sniffer is up and running..."))
+        self.messages.put(("INFO", "Sniffer: up and running..."))
         sniff(
                 opened_socket=self.socket,
                 prn=self.process_packet,
@@ -216,8 +209,9 @@ class Sniffer(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.messages.put(("DEBUG","Sniffer is stopped..."))
+        self.messages.put(("INFO", 'Sniffer: stopping...'))
         super().join(timeout)
+        self.messages.put(("INFO", "Sniffer: stopped..."))
 
     def should_stop_sniffer(self, _):
         return self.stop.isSet()
