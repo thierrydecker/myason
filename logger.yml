@@ -12,7 +12,7 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
 loggers:
-  simpleExample:
+  agent:
     level: DEBUG
     handlers: [console]
     propagate: no
