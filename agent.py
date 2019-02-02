@@ -56,7 +56,18 @@ class Messenger(threading.Thread):
                 break
 
     def process_message(self, msg):
-        self.logger.debug(msg)
+        if msg[0] == 'DEBUG':
+            self.logger.debug(msg[1])
+        elif msg[0] == 'INFO':
+            self.logger.info(msg[1])
+        elif msg[0] == 'WARNING':
+            self.logger.warning(msg[1])
+        elif msg[0] == 'ERROR':
+            self.logger.error(msg[1])
+        elif msg[0] == 'CRITICAL':
+            self.logger.critical(msg[1])
+        else:
+            self.logger.debug(msg[1])
 
 
 class Processor(threading.Thread):
@@ -71,7 +82,7 @@ class Processor(threading.Thread):
         self.inactive_timeout = 120
 
     def run(self):
-        self.messages.put("Packets processor is up and running...")
+        self.messages.put(("DEBUG", "Packets processor is up and running..."))
         while not self.stop.isSet():
             try:
                 pkt = self.packets.get(block=False)
@@ -83,11 +94,11 @@ class Processor(threading.Thread):
     def join(self, timeout=None):
         self.stop.set()
         self.clean_up()
-        self.messages.put("Packet processor is stopped...")
+        self.messages.put(("DEBUG", "Packet processor is stopped..."))
         super().join(timeout)
 
     def clean_up(self):
-        self.messages.put("Cleaning up the packets queue...")
+        self.messages.put(("DEBUG", "Cleaning up the packets queue..."))
         while True:
             try:
                 pkt = self.packets.get(block=False)
@@ -95,7 +106,7 @@ class Processor(threading.Thread):
                     self.process_packet(pkt)
             except queue.Empty:
                 break
-        self.messages.put("The packets queue has been cleaned...")
+        self.messages.put(("DEBUG", "The packets queue has been cleaned..."))
 
     def process_packet(self, pkt):
         # Packets dissection
@@ -149,7 +160,8 @@ class Processor(threading.Thread):
             cache_temp = sorted(((self.cache[key]["start_time"], key) for key in self.cache.keys()))
             reason = 'Cache limit'
             self.messages.put(
-                    "Reason=" + reason + " - " + cache_temp[0][1] + " - " + str(self.cache.pop(cache_temp[0][1], None))
+                    ("DEBUG", "Reason=" + reason + " - " + cache_temp[0][1] + " - " + str(
+                        self.cache.pop(cache_temp[0][1], None)))
             )
         cache_temp = dict(self.cache)
         for key_field in cache_temp.keys():
@@ -176,7 +188,7 @@ class Processor(threading.Thread):
                 reason = 'Inactive timeout'
             if aged:
                 self.messages.put(
-                        "Reason=" + reason + " - " + key_field + " - " + str(self.cache.pop(key_field, None))
+                        ("DEBUG", "Reason=" + reason + " - " + key_field + " - " + str(self.cache.pop(key_field, None)))
                 )
 
 
@@ -195,7 +207,7 @@ class Sniffer(threading.Thread):
                 type=ETH_P_ALL,
                 iface=self.interface,
         )
-        self.messages.put("Sniffer is up and running...")
+        self.messages.put(("DEBUG", "Sniffer is up and running..."))
         sniff(
                 opened_socket=self.socket,
                 prn=self.process_packet,
@@ -204,7 +216,7 @@ class Sniffer(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.messages.put("Sniffer is stopped...")
+        self.messages.put(("DEBUG","Sniffer is stopped..."))
         super().join(timeout)
 
     def should_stop_sniffer(self, _):
