@@ -26,7 +26,7 @@ class Messenger(threading.Thread):
             self.conf = conf_fn.read()
         self.conf = yaml.load(self.conf)
         logging.config.dictConfig(self.conf)
-        self.logger = logging.getLogger('agent')
+        self.logger = logging.getLogger('myason_agent')
 
     def run(self):
         self.logger.info('Messenger: up and running...')
