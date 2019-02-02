@@ -9,6 +9,7 @@ from scapy.layers.inet6 import IPv6
 from scapy.layers.inet import TCP
 from scapy.layers.inet import UDP
 
+
 import queue
 from threading import Thread, Event
 from time import sleep
@@ -111,7 +112,9 @@ class Processor(Thread):
             dport = pkt[UDP].dport
             flags = None
         else:
-            return
+            sport = 0
+            dport = 0
+            flags = None
         key_field = f"{src_ip},{dst_ip},{proto},{sport},{dport},{tos}"
         # Cache management
         if key_field in self.cache:
