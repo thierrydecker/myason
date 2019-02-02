@@ -26,10 +26,10 @@ class Messenger(threading.Thread):
             self.conf = conf_fn.read()
         self.conf = yaml.load(self.conf)
         logging.config.dictConfig(self.conf)
-        self.logger = logging.getLogger('myason_agent')
+        self.logger = logging.getLogger("myason_agent")
 
     def run(self):
-        self.logger.info('Messenger: up and running...')
+        self.logger.info("Messenger: up and running...")
         while not self.stop.isSet():
             try:
                 msg = self.messages.get(block=False)
@@ -40,13 +40,13 @@ class Messenger(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.logger.info('Messenger: stopping...')
+        self.logger.info("Messenger: stopping...")
         self.clean_up()
         super().join(timeout)
-        self.logger.info('Messenger: stopped...')
+        self.logger.info("Messenger: stopped...")
 
     def clean_up(self):
-        self.logger.info('Messenger: processing remaining messages...')
+        self.logger.info("Messenger: processing remaining messages...")
         while True:
             try:
                 pkt = self.messages.get(block=False)
@@ -56,15 +56,15 @@ class Messenger(threading.Thread):
                 break
 
     def process_message(self, msg):
-        if msg[0] == 'DEBUG':
+        if "DEBUG" == msg[0]:
             self.logger.debug(msg[1])
-        elif msg[0] == 'INFO':
+        elif "INFO" == msg[0]:
             self.logger.info(msg[1])
-        elif msg[0] == 'WARNING':
+        elif "WARNING" == msg[0]:
             self.logger.warning(msg[1])
-        elif msg[0] == 'ERROR':
+        elif "ERROR" == msg[0]:
             self.logger.error(msg[1])
-        elif msg[0] == 'CRITICAL':
+        elif "CRITICAL" == msg[0]:
             self.logger.critical(msg[1])
         else:
             self.logger.debug(msg[1])
@@ -93,7 +93,7 @@ class Processor(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.messages.put(("INFO", 'Processor: stopping...'))
+        self.messages.put(("INFO", "Processor: stopping..."))
         self.clean_up()
         super().join(timeout)
         self.messages.put(("INFO", "Processor: stopped..."))
@@ -171,7 +171,7 @@ class Processor(threading.Thread):
             if self.stop.is_set():
                 # Export the entry as the agent exits
                 aged = True
-            elif 'F' in flags or 'R' in flags:
+            elif "F" in flags or "R" in flags:
                 # Export the entry as TCP session is closed
                 aged = True
             elif end_time - start_time > self.active_timeout:
@@ -209,7 +209,7 @@ class Sniffer(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.messages.put(("INFO", 'Sniffer: stopping...'))
+        self.messages.put(("INFO", "Sniffer: stopping..."))
         super().join(timeout)
         self.messages.put(("INFO", "Sniffer: stopped..."))
 
@@ -245,5 +245,5 @@ def main():
     agent()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
