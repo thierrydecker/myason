@@ -9,17 +9,16 @@ from scapy.layers.inet6 import IPv6
 from scapy.layers.inet import TCP
 from scapy.layers.inet import UDP
 
-
 import queue
-from threading import Thread, Event
-from time import sleep
+import threading
+import time
 
 
-class Messenger(Thread):
+class Messenger(threading.Thread):
     def __init__(self, messages):
         super().__init__()
         self.messages = messages
-        self.stop = Event()
+        self.stop = threading.Event()
 
     def run(self):
         while not self.stop.isSet():
@@ -49,12 +48,12 @@ class Messenger(Thread):
         print("{}".format(msg))
 
 
-class Processor(Thread):
+class Processor(threading.Thread):
     def __init__(self, packets, messages):
         super().__init__()
         self.packets = packets
         self.messages = messages
-        self.stop = Event()
+        self.stop = threading.Event()
         self.cache = {}
         self.cache_limit = 500
         self.active_timeout = 360
@@ -170,13 +169,13 @@ class Processor(Thread):
                 )
 
 
-class Sniffer(Thread):
+class Sniffer(threading.Thread):
     def __init__(self, pkts, messages, interface=None):
         super().__init__()
         self.daemon = True
         self.socket = None
         self.interface = interface
-        self.stop = Event()
+        self.stop = threading.Event()
         self.pkts = pkts
         self.messages = messages
 
@@ -216,7 +215,7 @@ def agent():
     sniffer.start()
     try:
         while True:
-            sleep(100)
+            time.sleep(100)
     except KeyboardInterrupt:
         sniffer.join()
         if sniffer.isAlive():
