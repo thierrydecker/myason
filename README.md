@@ -39,7 +39,7 @@ We strongly encourage using virtual environnements in the developement process.
 
 ### Agent
 
-Three threads are running:
+Four threads are running:
 
 - A sniffer in charge of capturing the packets.
 
@@ -47,12 +47,17 @@ Three threads are running:
 
 - A message processor in charge of the logging stuff.
 
-These threads communicate to each other by the mean of two thread-safe FIFO queues:
+- An exporter processor in charge of sending flow entries to a collector.
+
+These threads communicate to each other by the mean of three thread-safe FIFO queues:
 
 - A packets queue filled by the sniffer and consumed by the packet processor.
 
-- A messages queue filled by the sniffer and the packet processor and consumed 
-by the message processor.
+- A messages queue filled by the sniffer, the packet processor
+and the exporter processor and consumed by the message processor.
+
+- An flow entries queue filled by the packet processor and consumed by
+the exporter processor.
 
 ### Packet processor
 
@@ -107,6 +112,10 @@ then delete. These are listed in order of precedence:
 - A TCP connection has been terminated by a RST (reset) or FIN (finish) flag in the flow.
 - An active flow timer or inactive flow timer limit is reached.
 
+### Exporter processor
+
+The exporter processor sends the aged flow entries to the collector which is in
+charge of storing them.
 
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
