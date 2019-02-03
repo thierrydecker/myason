@@ -275,14 +275,23 @@ class Exporter(threading.Thread):
         self.messages.put(("INFO", "Exporter: entries queue has been cleaned..."))
 
 
-def agent(logger_conf, agent_conf):
+def agent(logger_conf_fn, agent_conf_fn):
+    # Load configurations
+    logger_conf = logger_conf_loader(logger_conf_fn)
+    agent_conf = agent_conf_loader(agent_conf_fn)
+    # Create FIFO queues
     msg_queue = queue.Queue()
     pkt_queue = queue.Queue()
     ent_queue = queue.Queue()
-    messenger = Messenger(logger_conf, msg_queue)
-    messenger.start()
-    exporter = Exporter(ent_queue, msg_queue)
-    exporter.start()
+    # Create workers
+    messenger = Messenger(
+            logger_conf,
+            msg_queue
+    )
+    exporter = Exporter(
+            ent_queue,
+            msg_queue
+    )
     processor = Processor(
             pkt_queue,
             ent_queue,
@@ -291,8 +300,15 @@ def agent(logger_conf, agent_conf):
             agent_conf["cache_active_timeout"],
             agent_conf["cache_inactive_timeout"],
     )
+    sniffer = Sniffer(
+            pkt_queue,
+            msg_queue,
+            interface=agent_conf["interfaces"][0]
+    )
+    # Start workers
+    messenger.start()
+    exporter.start()
     processor.start()
-    sniffer = Sniffer(pkt_queue, msg_queue, interface=agent_conf["interfaces"][0])
     sniffer.start()
     try:
         while True:
@@ -307,14 +323,14 @@ def agent(logger_conf, agent_conf):
         messenger.join()
 
 
-def logger_conf_loader(logger_conf_fn="agent_logger.yml"):
+def logger_conf_loader(logger_conf_fn):
     with open(logger_conf_fn) as conf_fn:
         logger_conf = conf_fn.read()
     logger_conf = yaml.load(logger_conf)
     return logger_conf
 
 
-def agent_conf_loader(agent_conf_fn="agent.yml"):
+def agent_conf_loader(agent_conf_fn):
     with open(agent_conf_fn) as conf_fn:
         agent_conf = conf_fn.read()
     agent_conf = yaml.load(agent_conf)
@@ -322,9 +338,10 @@ def agent_conf_loader(agent_conf_fn="agent.yml"):
 
 
 def main():
-    logger_conf = logger_conf_loader(logger_conf_fn="agent_logger.yml")
-    agent_conf = agent_conf_loader(agent_conf_fn="agent.yml")
-    agent(logger_conf=logger_conf, agent_conf=agent_conf)
+    agent(
+            logger_conf_fn="agent_logger.yml",
+            agent_conf_fn="agent.yml"
+    )
 
 
 if __name__ == "__main__":
