@@ -58,14 +58,12 @@ class Sniffer(threading.Thread):
 
 
 class Messenger(threading.Thread):
-    def __init__(self, messages):
+    def __init__(self, logger_conf, messages):
         super().__init__()
         self.messages = messages
         self.stop = threading.Event()
-        with open("logger.yml") as conf_fn:
-            self.conf = conf_fn.read()
-        self.conf = yaml.load(self.conf)
-        logging.config.dictConfig(self.conf)
+        self.logger_conf = logger_conf
+        logging.config.dictConfig(self.logger_conf)
         self.logger = logging.getLogger("myason_agent")
 
     def run(self):
@@ -277,11 +275,18 @@ class Exporter(threading.Thread):
         self.messages.put(("INFO", "Exporter: entries queue has been cleaned..."))
 
 
-def agent():
+def logger_conf_loader(logger_conf_fn="agent_logger.yml"):
+    with open(logger_conf_fn) as conf_fn:
+        logger_conf = conf_fn.read()
+    logger_conf = yaml.load(logger_conf)
+    return logger_conf
+
+
+def agent(logger_conf):
     msg_queue = queue.Queue()
     pkt_queue = queue.Queue()
     ent_queue = queue.Queue()
-    messenger = Messenger(msg_queue)
+    messenger = Messenger(logger_conf, msg_queue)
     messenger.start()
     exporter = Exporter(ent_queue, msg_queue)
     exporter.start()
@@ -303,7 +308,8 @@ def agent():
 
 
 def main():
-    agent()
+    logger_conf = logger_conf_loader()
+    agent(logger_conf)
 
 
 if __name__ == "__main__":
