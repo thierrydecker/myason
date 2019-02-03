@@ -39,6 +39,8 @@ We strongly encourage using virtual environnements in the developement process.
 
 ### Agent
 
+![alt text](images/myason_agent_architecture.jpg)
+
 Four threads are running:
 
 - A sniffer in charge of capturing the packets.
@@ -98,7 +100,7 @@ The following fields are **non-key fields** and are stored in the flow record id
 - TCP flags
 - Source and destination BGP AS numbers
 
-The **exporter** 
+The **cache aging** 
 
 The agent may have a limited amount of memory to store information, so at some point the device has to make
 room for new flows. This is where flow aging and exporting comes into play.
