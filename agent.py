@@ -17,6 +17,46 @@ import logging
 import logging.config
 
 
+class Sniffer(threading.Thread):
+    def __init__(self, pkts, messages, interface=None):
+        super().__init__()
+        self.daemon = True
+        self.socket = None
+        self.interface = interface
+        self.stop = threading.Event()
+        self.pkts = pkts
+        self.messages = messages
+
+    def run(self):
+        self.socket = conf.L2listen(
+                type=ETH_P_ALL,
+                iface=self.interface,
+        )
+        self.messages.put(("INFO", "Sniffer: up and running..."))
+        sniff(
+                opened_socket=self.socket,
+                prn=self.process_packet,
+                stop_filter=self.should_stop_sniffer
+        )
+
+    def join(self, timeout=None):
+        self.stop.set()
+        self.messages.put(("INFO", "Sniffer: stopping..."))
+        super().join(timeout)
+        self.messages.put(("INFO", "Sniffer: stopped..."))
+
+    def should_stop_sniffer(self, _):
+        return self.stop.isSet()
+
+    def process_packet(self, pkt):
+        self.messages.put(("DEBUG", f"Sniffer: Received a frame... {pkt.summary()}"))
+        if Ether in pkt:
+            self.messages.put(("DEBUG", "Sniffer: Frame is Ethernet..."))
+            self.pkts.put(pkt)
+            return
+        self.messages.put(("DEBUG", "Sniffer: Frame is NOT Ethernet. Ignoring it..."))
+
+
 class Messenger(threading.Thread):
     def __init__(self, messages):
         super().__init__()
@@ -195,46 +235,6 @@ class Processor(threading.Thread):
                 entry = {key_field: self.cache.pop(key_field, None)}
                 self.messages.put(("DEBUG", "Processor: Exporting entry..."))
                 self.messages.put(("DEBUG", entry))
-
-
-class Sniffer(threading.Thread):
-    def __init__(self, pkts, messages, interface=None):
-        super().__init__()
-        self.daemon = True
-        self.socket = None
-        self.interface = interface
-        self.stop = threading.Event()
-        self.pkts = pkts
-        self.messages = messages
-
-    def run(self):
-        self.socket = conf.L2listen(
-                type=ETH_P_ALL,
-                iface=self.interface,
-        )
-        self.messages.put(("INFO", "Sniffer: up and running..."))
-        sniff(
-                opened_socket=self.socket,
-                prn=self.process_packet,
-                stop_filter=self.should_stop_sniffer
-        )
-
-    def join(self, timeout=None):
-        self.stop.set()
-        self.messages.put(("INFO", "Sniffer: stopping..."))
-        super().join(timeout)
-        self.messages.put(("INFO", "Sniffer: stopped..."))
-
-    def should_stop_sniffer(self, _):
-        return self.stop.isSet()
-
-    def process_packet(self, pkt):
-        self.messages.put(("DEBUG", f"Sniffer: Received a frame... {pkt.summary()}"))
-        if Ether in pkt:
-            self.messages.put(("DEBUG", "Sniffer: Frame is Ethernet..."))
-            self.pkts.put(pkt)
-            return
-        self.messages.put(("DEBUG", "Sniffer: Frame is NOT Ethernet. Ignoring it..."))
 
 
 def agent():
