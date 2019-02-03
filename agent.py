@@ -26,10 +26,10 @@ class Messenger(threading.Thread):
             self.conf = conf_fn.read()
         self.conf = yaml.load(self.conf)
         logging.config.dictConfig(self.conf)
-        self.logger = logging.getLogger('agent')
+        self.logger = logging.getLogger("myason_agent")
 
     def run(self):
-        self.logger.debug('Messenger is up and running...')
+        self.logger.info("Messenger: up and running...")
         while not self.stop.isSet():
             try:
                 msg = self.messages.get(block=False)
@@ -40,13 +40,13 @@ class Messenger(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.logger.debug('Messenger is stopping...')
+        self.logger.info("Messenger: stopping...")
         self.clean_up()
         super().join(timeout)
-        self.logger.debug('Messenger stopped...')
+        self.logger.info("Messenger: stopped...")
 
     def clean_up(self):
-        self.logger.debug('Messenger is processing remaining messages...')
+        self.logger.info("Messenger: processing remaining messages...")
         while True:
             try:
                 pkt = self.messages.get(block=False)
@@ -56,7 +56,18 @@ class Messenger(threading.Thread):
                 break
 
     def process_message(self, msg):
-        self.logger.debug(msg)
+        if "DEBUG" == msg[0]:
+            self.logger.debug(msg[1])
+        elif "INFO" == msg[0]:
+            self.logger.info(msg[1])
+        elif "WARNING" == msg[0]:
+            self.logger.warning(msg[1])
+        elif "ERROR" == msg[0]:
+            self.logger.error(msg[1])
+        elif "CRITICAL" == msg[0]:
+            self.logger.critical(msg[1])
+        else:
+            self.logger.debug(msg[1])
 
 
 class Processor(threading.Thread):
@@ -66,12 +77,12 @@ class Processor(threading.Thread):
         self.messages = messages
         self.stop = threading.Event()
         self.cache = {}
-        self.cache_limit = 500
-        self.active_timeout = 360
-        self.inactive_timeout = 120
+        self.cache_limit = 1024
+        self.active_timeout = 1800
+        self.inactive_timeout = 15
 
     def run(self):
-        self.messages.put("Packets processor is up and running...")
+        self.messages.put(("INFO", "Processor: up and running..."))
         while not self.stop.isSet():
             try:
                 pkt = self.packets.get(block=False)
@@ -82,12 +93,13 @@ class Processor(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
+        self.messages.put(("INFO", "Processor: stopping..."))
         self.clean_up()
-        self.messages.put("Packet processor is stopped...")
         super().join(timeout)
+        self.messages.put(("INFO", "Processor: stopped..."))
 
     def clean_up(self):
-        self.messages.put("Cleaning up the packets queue...")
+        self.messages.put(("INFO", "Processor: cleaning up the packets queue..."))
         while True:
             try:
                 pkt = self.packets.get(block=False)
@@ -95,17 +107,19 @@ class Processor(threading.Thread):
                     self.process_packet(pkt)
             except queue.Empty:
                 break
-        self.messages.put("The packets queue has been cleaned...")
+        self.messages.put(("INFO", "Processor: packets queue has been cleaned..."))
 
     def process_packet(self, pkt):
         # Packets dissection
         if IP in pkt:
+            self.messages.put(("DEBUG", "Processor: Packet is IPv4..."))
             src_ip = pkt[IP].src
             dst_ip = pkt[IP].dst
             proto = pkt[IP].proto
             tos = pkt[IP].tos
             length = pkt[IP].len
         elif IPv6 in pkt:
+            self.messages.put(("DEBUG", "Processor: Packet is IPv6..."))
             src_ip = pkt[IPv6].src
             dst_ip = pkt[IPv6].dst
             proto = pkt[IPv6].nh
@@ -114,14 +128,17 @@ class Processor(threading.Thread):
         else:
             return
         if TCP in pkt:
+            self.messages.put(("DEBUG", "Processor: Datagram is TCP..."))
             sport = pkt[TCP].sport
             dport = pkt[TCP].dport
             flags = pkt[TCP].flags
         elif UDP in pkt:
+            self.messages.put(("DEBUG", "Processor: Datagram is UDP..."))
             sport = pkt[UDP].sport
             dport = pkt[UDP].dport
             flags = None
         else:
+            self.messages.put(("DEBUG", "Processor: Datagram is not TCP or UDP..."))
             sport = 0
             dport = 0
             flags = None
@@ -129,12 +146,14 @@ class Processor(threading.Thread):
         # Cache management
         if key_field in self.cache:
             # Update cache entry
+            self.messages.put(("DEBUG", "Processor: Update entry in the cache..."))
             self.cache[key_field]["bytes"] += length
             self.cache[key_field]["packets"] += 1
             self.cache[key_field]["end_time"] = time.time()
             self.cache[key_field]["flags"] = str(flags)
         else:
             # Add cache entry
+            self.messages.put(("DEBUG", "Processor: Add entry in the cache..."))
             non_key_fields = {
                 "bytes": length,
                 "packets": 1,
@@ -146,38 +165,36 @@ class Processor(threading.Thread):
         # Cache aging
         if len(self.cache) > self.cache_limit:
             # Export oldest entry
+            self.messages.put(("WARNING", "Processor: Cache size exceeded. Verify settings..."))
             cache_temp = sorted(((self.cache[key]["start_time"], key) for key in self.cache.keys()))
-            reason = 'Cache limit'
-            self.messages.put(
-                    "Reason=" + reason + " - " + cache_temp[0][1] + " - " + str(self.cache.pop(cache_temp[0][1], None))
-            )
+            entry = {cache_temp[0][1]: self.cache.pop(cache_temp[0][1], None)}
+            self.messages.put(("DEBUG", entry))
         cache_temp = dict(self.cache)
         for key_field in cache_temp.keys():
             start_time = cache_temp[key_field]["start_time"]
             end_time = cache_temp[key_field]["end_time"]
             flags = cache_temp[key_field]["flags"]
             aged = False
-            reason = 'Unknow'
             if self.stop.is_set():
                 # Export the entry as the agent exits
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. Agent ending..."))
                 aged = True
-                reason = 'Stop asked'
-            elif 'F' in flags or 'R' in flags:
+            elif "F" in flags or "R" in flags:
                 # Export the entry as TCP session is closed
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. TCP session ended..."))
                 aged = True
-                reason = 'TCP end session'
             elif end_time - start_time > self.active_timeout:
                 # Export the entry because of max activity
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. Flow max active timeout..."))
                 aged = True
-                reason = 'Active timeout'
             elif time.time() - end_time > self.inactive_timeout:
                 # Export the entry because of max inactivity
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. Flow max inactive timeout..."))
                 aged = True
-                reason = 'Inactive timeout'
             if aged:
-                self.messages.put(
-                        "Reason=" + reason + " - " + key_field + " - " + str(self.cache.pop(key_field, None))
-                )
+                entry = {key_field: self.cache.pop(key_field, None)}
+                self.messages.put(("DEBUG", "Processor: Exporting entry..."))
+                self.messages.put(("DEBUG", entry))
 
 
 class Sniffer(threading.Thread):
@@ -195,7 +212,7 @@ class Sniffer(threading.Thread):
                 type=ETH_P_ALL,
                 iface=self.interface,
         )
-        self.messages.put("Sniffer is up and running...")
+        self.messages.put(("INFO", "Sniffer: up and running..."))
         sniff(
                 opened_socket=self.socket,
                 prn=self.process_packet,
@@ -204,15 +221,20 @@ class Sniffer(threading.Thread):
 
     def join(self, timeout=None):
         self.stop.set()
-        self.messages.put("Sniffer is stopped...")
+        self.messages.put(("INFO", "Sniffer: stopping..."))
         super().join(timeout)
+        self.messages.put(("INFO", "Sniffer: stopped..."))
 
     def should_stop_sniffer(self, _):
         return self.stop.isSet()
 
     def process_packet(self, pkt):
+        self.messages.put(("DEBUG", f"Sniffer: Received a frame... {pkt.summary()}"))
         if Ether in pkt:
+            self.messages.put(("DEBUG", "Sniffer: Frame is Ethernet..."))
             self.pkts.put(pkt)
+            return
+        self.messages.put(("DEBUG", "Sniffer: Frame is NOT Ethernet. Ignoring it..."))
 
 
 def agent():
@@ -239,5 +261,5 @@ def main():
     agent()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
