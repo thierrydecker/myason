@@ -1,1 +1,5 @@
 # Agent configuration
+interfaces: ['Intel(R) Dual Band Wireless-AC 7265']
+cache_limit: 1024
+cache_active_timeout: 1800
+cache_inactive_timeout: 15
