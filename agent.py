@@ -112,12 +112,14 @@ class Processor(threading.Thread):
     def process_packet(self, pkt):
         # Packets dissection
         if IP in pkt:
+            self.messages.put(("DEBUG", "Processor: Packet is IPv4..."))
             src_ip = pkt[IP].src
             dst_ip = pkt[IP].dst
             proto = pkt[IP].proto
             tos = pkt[IP].tos
             length = pkt[IP].len
         elif IPv6 in pkt:
+            self.messages.put(("DEBUG", "Processor: Packet is IPv6..."))
             src_ip = pkt[IPv6].src
             dst_ip = pkt[IPv6].dst
             proto = pkt[IPv6].nh
@@ -126,14 +128,17 @@ class Processor(threading.Thread):
         else:
             return
         if TCP in pkt:
+            self.messages.put(("DEBUG", "Processor: Datagram is TCP..."))
             sport = pkt[TCP].sport
             dport = pkt[TCP].dport
             flags = pkt[TCP].flags
         elif UDP in pkt:
+            self.messages.put(("DEBUG", "Processor: Datagram is UDP..."))
             sport = pkt[UDP].sport
             dport = pkt[UDP].dport
             flags = None
         else:
+            self.messages.put(("DEBUG", "Processor: Datagram is not TCP or UDP..."))
             sport = 0
             dport = 0
             flags = None
@@ -141,12 +146,14 @@ class Processor(threading.Thread):
         # Cache management
         if key_field in self.cache:
             # Update cache entry
+            self.messages.put(("DEBUG", "Processor: Update entry in the cache..."))
             self.cache[key_field]["bytes"] += length
             self.cache[key_field]["packets"] += 1
             self.cache[key_field]["end_time"] = time.time()
             self.cache[key_field]["flags"] = str(flags)
         else:
             # Add cache entry
+            self.messages.put(("DEBUG", "Processor: Add entry in the cache..."))
             non_key_fields = {
                 "bytes": length,
                 "packets": 1,
@@ -170,18 +177,23 @@ class Processor(threading.Thread):
             aged = False
             if self.stop.is_set():
                 # Export the entry as the agent exits
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. Agent ending..."))
                 aged = True
             elif "F" in flags or "R" in flags:
                 # Export the entry as TCP session is closed
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. TCP session ended..."))
                 aged = True
             elif end_time - start_time > self.active_timeout:
                 # Export the entry because of max activity
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. Flow max active timeout..."))
                 aged = True
             elif time.time() - end_time > self.inactive_timeout:
                 # Export the entry because of max inactivity
+                self.messages.put(("DEBUG", "Processor: Deleting entry from cache. Flow max inactive timeout..."))
                 aged = True
             if aged:
                 entry = {key_field: self.cache.pop(key_field, None)}
+                self.messages.put(("DEBUG", "Processor: Exporting entry..."))
                 self.messages.put(("DEBUG", entry))
 
 
@@ -217,8 +229,12 @@ class Sniffer(threading.Thread):
         return self.stop.isSet()
 
     def process_packet(self, pkt):
+        self.messages.put(("DEBUG", f"Sniffer: Received a frame... {pkt.summary()}"))
         if Ether in pkt:
+            self.messages.put(("DEBUG", "Sniffer: Frame is Ethernet..."))
             self.pkts.put(pkt)
+            return
+        self.messages.put(("DEBUG", "Sniffer: Frame is NOT Ethernet. Ignoring it..."))
 
 
 def agent():
