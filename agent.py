@@ -111,10 +111,11 @@ class Messenger(threading.Thread):
 
 
 class Processor(threading.Thread):
-    def __init__(self, packets, messages):
+    def __init__(self, packets, entries, messages):
         super().__init__()
         self.packets = packets
         self.messages = messages
+        self.entries = entries
         self.stop = threading.Event()
         self.cache = {}
         self.cache_limit = 1024
@@ -233,16 +234,58 @@ class Processor(threading.Thread):
                 aged = True
             if aged:
                 entry = {key_field: self.cache.pop(key_field, None)}
-                self.messages.put(("DEBUG", "Processor: Exporting entry..."))
-                self.messages.put(("DEBUG", entry))
+                self.messages.put(("DEBUG", "Processor: Sending entry to exporter..."))
+                self.entries.put(entry)
+
+
+class Exporter(threading.Thread):
+    def __init__(self, entries, messages):
+        super().__init__()
+        self.entries = entries
+        self.messages = messages
+        self.stop = threading.Event()
+
+    def run(self):
+        self.messages.put(("INFO", "Exporter: up and running..."))
+        while not self.stop.isSet():
+            try:
+                entry = self.entries.get(block=False)
+                if entry is not None:
+                    self.export_entry(entry)
+            except queue.Empty:
+                time.sleep(0.5)
+
+    def export_entry(self, entry):
+        self.messages.put(("DEBUG", f"Exporter: {entry}"))
+
+    def join(self, timeout=None):
+        self.stop.set()
+        self.messages.put(("INFO", "Exporter: stopping..."))
+        self.clean_up()
+        super().join(timeout)
+        self.messages.put(("INFO", "Exporter: stopped..."))
+
+    def clean_up(self):
+        self.messages.put(("INFO", "Exporter: cleaning up the entries queue..."))
+        while True:
+            try:
+                entry = self.entries.get(block=False)
+                if entry is not None:
+                    self.export_entry(entry)
+            except queue.Empty:
+                break
+        self.messages.put(("INFO", "Exporter: entries queue has been cleaned..."))
 
 
 def agent():
     msg_queue = queue.Queue()
     pkt_queue = queue.Queue()
+    ent_queue = queue.Queue()
     messenger = Messenger(msg_queue)
     messenger.start()
-    processor = Processor(pkt_queue, msg_queue)
+    exporter = Exporter(ent_queue, msg_queue)
+    exporter.start()
+    processor = Processor(pkt_queue, ent_queue, msg_queue)
     processor.start()
     sniffer = Sniffer(pkt_queue, msg_queue, interface=None)
     sniffer.start()
@@ -250,10 +293,12 @@ def agent():
         while True:
             time.sleep(100)
     except KeyboardInterrupt:
+        msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
         sniffer.join()
         if sniffer.isAlive():
             sniffer.socket.close()
         processor.join()
+        exporter.join()
         messenger.join()
 
 
