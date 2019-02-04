@@ -22,7 +22,7 @@ def main():
     # parse arguments
     arguments = parser.parse_args()
     # start the agent or the server
-    if arguments.app == 'agent':
+    if arguments.app == "agent":
         agent.agent()
     else:
         collector.collector()
