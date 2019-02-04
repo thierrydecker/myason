@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-def server():
+def collector():
     print('Server started...')
 
 

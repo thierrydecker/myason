@@ -5,7 +5,7 @@
 import argparse
 
 import agent
-import server
+import collector
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     if arguments.app == 'agent':
         agent.agent()
     else:
-        server.collector()
+        collector.collector()
 
 
 if __name__ == '__main__':
