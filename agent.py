@@ -15,6 +15,8 @@ import time
 import yaml
 import logging
 import logging.config
+import os
+import ifaddr
 
 
 class Sniffer(threading.Thread):
@@ -29,14 +31,14 @@ class Sniffer(threading.Thread):
 
     def run(self):
         self.socket = conf.L2listen(
-                type=ETH_P_ALL,
-                iface=self.interface,
+            type=ETH_P_ALL,
+            iface=self.interface,
         )
         self.messages.put(("INFO", "Sniffer: up and running..."))
         sniff(
-                opened_socket=self.socket,
-                prn=self.process_packet,
-                stop_filter=self.should_stop_sniffer
+            opened_socket=self.socket,
+            prn=self.process_packet,
+            stop_filter=self.should_stop_sniffer
         )
 
     def join(self, timeout=None):
@@ -58,14 +60,12 @@ class Sniffer(threading.Thread):
 
 
 class Messenger(threading.Thread):
-    def __init__(self, messages):
+    def __init__(self, logger_conf, messages):
         super().__init__()
         self.messages = messages
         self.stop = threading.Event()
-        with open("logger.yml") as conf_fn:
-            self.conf = conf_fn.read()
-        self.conf = yaml.load(self.conf)
-        logging.config.dictConfig(self.conf)
+        self.logger_conf = logger_conf
+        logging.config.dictConfig(self.logger_conf)
         self.logger = logging.getLogger("myason_agent")
 
     def run(self):
@@ -111,16 +111,16 @@ class Messenger(threading.Thread):
 
 
 class Processor(threading.Thread):
-    def __init__(self, packets, entries, messages):
+    def __init__(self, packets, entries, messages, cache_limit, cache_active_timeout, cache_inactive_timeout):
         super().__init__()
         self.packets = packets
         self.messages = messages
         self.entries = entries
         self.stop = threading.Event()
         self.cache = {}
-        self.cache_limit = 1024
-        self.active_timeout = 1800
-        self.inactive_timeout = 15
+        self.cache_limit = cache_limit
+        self.active_timeout = cache_active_timeout
+        self.inactive_timeout = cache_inactive_timeout
 
     def run(self):
         self.messages.put(("INFO", "Processor: up and running..."))
@@ -277,17 +277,198 @@ class Exporter(threading.Thread):
         self.messages.put(("INFO", "Exporter: entries queue has been cleaned..."))
 
 
-def agent():
+def logger_conf_loader(logger_conf_fn):
+    with open(logger_conf_fn) as conf_fn:
+        logger_conf = conf_fn.read()
+    logger_conf = yaml.load(logger_conf)
+    return logger_conf
+
+
+def agent_conf_loader(agent_conf_fn):
+    with open(agent_conf_fn) as conf_fn:
+        agent_conf = conf_fn.read()
+    agent_conf = yaml.load(agent_conf)
+    return agent_conf
+
+
+def create_logger(name, configuration):
+    logging.config.dictConfig(configuration)
+    return logging.getLogger(name)
+
+
+def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
+    #
+    # Basic logging configuration
+    #
+    default_logging = {
+        "version": 1,
+        "formatters": {
+            "simple": {
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            }
+        },
+        "handlers": {
+            "file": {
+                "class": "logging.FileHandler",
+                "level": "DEBUG",
+                "formatter": "simple",
+                'filename': "agent_error.log"
+            }
+        },
+        "root": {
+            "level": "DEBUG",
+            "handlers": ["file"]
+        },
+        'disable_existing_loggers': False
+    }
+    log = create_logger('root', default_logging)
+    conf_ok = True
+
+    #
+    # Configurations sanity chacks
+    #
+    log.info("Beginning agent configuration sanity checks...")
+
+    #
+    # Agent logger configuration sanity checks
+    #
+    log.info("Agent logger configuration checks...")
+
+    #
+    # Verify agent logger configuration file existance
+    #
+    log.info(f"Verifying agent logger configuration file ({agent_logger_conf_fn}) existance...")
+    if not os.path.exists(agent_logger_conf_fn):
+        log.error(f"Configuration file ({agent_logger_conf_fn}) doesn't exits... exiting!")
+        return False
+    log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) exists...")
+
+    #
+    # Try to parse agent logger configuration file
+    #
+    log.info(f"Parsing agent logger configuration file ({agent_logger_conf_fn})...")
+    try:
+        with open(agent_logger_conf_fn) as conf_fn:
+            agent_logger_conf = conf_fn.read()
+        agent_logger_conf = yaml.load(agent_logger_conf)
+    except yaml.YAMLError as e:
+        log.error(f"Error parsing agent logger configuration file ({agent_logger_conf_fn})... exiting!")
+        log.error(e)
+        return False
+    log.info(f"Successfully parsed agent logger configuration file ({agent_logger_conf_fn})...")
+
+    #
+    # Verify agent logger conf is a valid configuration
+    #
+    log.info(f"Verifying if agent logger configuration file ({agent_logger_conf_fn}) is valid...")
+    try:
+        create_logger("myason_agent", agent_logger_conf)
+    except ValueError as e:
+        log = create_logger('root', default_logging)
+        log.error(f"Agent logger configuration file ({agent_logger_conf_fn}): {e}... exiting!")
+        return False
+    log = create_logger('root', default_logging)
+    log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) is valid...")
+
+    #
+    # Agent configuration sanity checks
+    #
+    log.info("Agent configuration checks...")
+
+    #
+    # Verify agent configuration file existance
+    #
+    log.info(f"Verifying agent configuration file ({agent_conf_fn}) existance...")
+    if not os.path.exists(agent_conf_fn):
+        log.error(f"Configuration file ({agent_conf_fn}) doesn't exits... exiting!")
+        return False
+    log.info(f"Agent configuration file ({agent_conf_fn}) exists...")
+
+    #
+    # Try to parse agent configuration file
+    #
+    log.info(f"Parsing agent configuration file ({agent_conf_fn})...")
+    try:
+        with open(agent_conf_fn) as conf_fn:
+            agent_conf = conf_fn.read()
+        agent_conf = yaml.load(agent_conf)
+    except yaml.YAMLError as e:
+        log.error(f"Error parsing agent logger configuration file ({agent_conf_fn})... exiting!")
+        log.error(e)
+        return False
+    log.info(f"Successfully parsed agent logger configuration file ({agent_conf_fn})...")
+
+    #
+    # Ckeck agent configuration items
+    #
+    log.info(f"Checking agent configuration file ({agent_conf_fn}) items...")
+    #
+    # Check interfaces item
+    #
+    log.info(f"Checking agent configuration file ({agent_conf_fn}) item interfaces...")
+    iflist = agent_conf.get("interfaces", None)
+    if iflist is None:
+        log.error(f"Missing interfaces in agent configuration file ({agent_conf_fn})... Exiting!")
+        return False
+    if type(iflist) is not list:
+        log.error(f"Interfaces in agent configuration file ({agent_conf_fn}) must be a list... Exiting!")
+        return False
+    #
+    # Check interfaces names
+    #
+    adapters = [ifname.nice_name for ifname in ifaddr.get_adapters()]
+    for ifname in iflist:
+        if ifname not in adapters:
+            log.error(f"Interface {ifname} in agent configuration file ({agent_conf_fn}) is not valid... Exiting!")
+    log.info(f"Interfaces in agent configuration file ({agent_conf_fn}) passed...")
+    #
+    # Exiting sanity checks with the relevant message
+    #
+    if conf_ok:
+        log.info("Agent configuration checks passed...")
+        log.info("Starting the agent...")
+        return True
+    else:
+        log.error("Agent configuration checks failed... Exiting!")
+        return False
+
+
+def agent(logger_conf_fn, agent_conf_fn):
+    if not conf_is_ok(logger_conf_fn, agent_conf_fn):
+        return
+    # Load configurations
+    logger_conf = logger_conf_loader(logger_conf_fn)
+    agent_conf = agent_conf_loader(agent_conf_fn)
+    # Create FIFO queues
     msg_queue = queue.Queue()
     pkt_queue = queue.Queue()
     ent_queue = queue.Queue()
-    messenger = Messenger(msg_queue)
+    # Create workers
+    messenger = Messenger(
+        logger_conf,
+        msg_queue
+    )
+    exporter = Exporter(
+        ent_queue,
+        msg_queue
+    )
+    processor = Processor(
+        pkt_queue,
+        ent_queue,
+        msg_queue,
+        agent_conf["cache_limit"],
+        agent_conf["cache_active_timeout"],
+        agent_conf["cache_inactive_timeout"],
+    )
+    sniffer = Sniffer(
+        pkt_queue,
+        msg_queue,
+        interface=agent_conf["interfaces"][0]
+    )
+    # Start workers
     messenger.start()
-    exporter = Exporter(ent_queue, msg_queue)
     exporter.start()
-    processor = Processor(pkt_queue, ent_queue, msg_queue)
     processor.start()
-    sniffer = Sniffer(pkt_queue, msg_queue, interface=None)
     sniffer.start()
     try:
         while True:
@@ -303,7 +484,10 @@ def agent():
 
 
 def main():
-    agent()
+    agent(
+        logger_conf_fn="agent_logger.yml",
+        agent_conf_fn="agent.yml"
+    )
 
 
 if __name__ == "__main__":
