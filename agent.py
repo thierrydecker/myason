@@ -16,6 +16,7 @@ import yaml
 import logging
 import logging.config
 import os
+import ifaddr
 
 
 class Sniffer(threading.Thread):
@@ -412,15 +413,21 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     if type(iflist) is not list:
         log.error(f"Interfaces in agent configuration file ({agent_conf_fn}) must be a list... Exiting!")
         return False
+    #
+    # Check interfaces names
+    #
+    adapters = [ifname.nice_name for ifname in ifaddr.get_adapters()]
+    for ifname in iflist:
+        if ifname not in adapters:
+            log.error(f"Interface {ifname} in agent configuration file ({agent_conf_fn}) is not valid... Exiting!")
     log.info(f"Interfaces in agent configuration file ({agent_conf_fn}) passed...")
-    log.info(f"Items in agent configuration file ({agent_conf_fn}) passed...")
-
     #
     # Exiting sanity checks with the relevant message
     #
     if conf_ok:
-        log.info("Agent configuration checks passed. Starting the agent...")
-        return False
+        log.info("Agent configuration checks passed...")
+        log.info("Starting the agent...")
+        return True
     else:
         log.error("Agent configuration checks failed... Exiting!")
         return False
