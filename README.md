@@ -18,10 +18,12 @@ Myason developement is currently based on following technologies:
 - [Python (3.7)](https://www.python.org)
 - [Scapy (2.4.2)](https://scapy.net/)
 - [PyYaml (3.13)](https://pyyaml.org/wiki/PyYAML)
+- [ifaddr (0.1.6)](https://github.com/pydron/ifaddr)
 
 We strongly encourage using virtual environnements in the developement process. 
 
 ## Application usage
+Myason:
 
     python myason.py [-h] {agent, server} ...
 
@@ -34,6 +36,15 @@ We strongly encourage using virtual environnements in the developement process.
     optional arguments:
 
         -h, --help show this help message and exit
+
+Myason agent:
+
+    python myason.py agent [-h]  [-lc LOGGER_CONF] [-ac AGENT_CONF]
+
+        optional arguments:
+            -h, --help          show this help message and exit
+            -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
+            -ac AGENT_CONF,     --agent-conf AGENT_CONF
 
 ## Application architecture
 
