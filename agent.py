@@ -290,96 +290,190 @@ def agent_conf_loader(agent_conf_fn):
     return agent_conf
 
 
+def create_logger(name, configuration):
+    logging.config.dictConfig(configuration)
+    return logging.getLogger(name)
+
+
 def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
-    # Init a default logger configuration
-    logging.basicConfig(
-        filename="agent_error.log",
-        level=logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-    logging.info("Beginning agent configuration checks...")
+    #
+    # Basic logging configuration
+    #
+    default_logging = {
+        "version": 1,
+        "formatters": {
+            "simple": {
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            }
+        },
+        "handlers": {
+            "file": {
+                "class": "logging.FileHandler",
+                "level": "DEBUG",
+                "formatter": "simple",
+                'filename': "agent_error.log"
+            }
+        },
+        "root": {
+            "level": "DEBUG",
+            "handlers": ["file"]
+        },
+        'disable_existing_loggers': False
+    }
+    log = create_logger('root', default_logging)
+    conf_ok = True
+
+    #
+    # Configurations sanity chacks
+    #
+    log.info("Beginning agent configuration sanity checks...")
+
+    #
+    # Agent logger configuration sanity checks
+    #
+    log.info("Agent logger configuration checks...")
+
+    #
     # Verify agent logger configuration file existance
+    #
+    log.info(f"Verifying agent logger configuration file ({agent_logger_conf_fn}) existance...")
     if not os.path.exists(agent_logger_conf_fn):
-        logging.error(f"Configuration file {agent_logger_conf_fn} doesn't exits... exiting!")
+        log.error(f"Configuration file ({agent_logger_conf_fn}) doesn't exits... exiting!")
         return False
+    log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) exists...")
+
+    #
     # Try to parse agent logger configuration file
-    logging.info("Parsing agent logger configuration...")
+    #
+    log.info(f"Parsing agent logger configuration file ({agent_logger_conf_fn})...")
     try:
         with open(agent_logger_conf_fn) as conf_fn:
             agent_logger_conf = conf_fn.read()
-        yaml.load(agent_logger_conf)
-    except yaml.YAMLError as exc:
-        logging.error("Error parsing agent logger yaml configuration file... exiting!")
-        logging.error(exc)
+        agent_logger_conf = yaml.load(agent_logger_conf)
+    except yaml.YAMLError as e:
+        log.error(f"Error parsing agent logger configuration file ({agent_logger_conf_fn})... exiting!")
+        log.error(e)
         return False
+    log.info(f"Successfully parsed agent logger configuration file ({agent_logger_conf_fn})...")
+
+    #
+    # Verify agent logger conf is a valid configuration
+    #
+    log.info(f"Verifying if agent logger configuration file ({agent_logger_conf_fn}) is valid...")
+    try:
+        create_logger("myason_agent", agent_logger_conf)
+    except ValueError as e:
+        log = create_logger('root', default_logging)
+        log.error(f"Agent logger configuration file ({agent_logger_conf_fn}): {e}... exiting!")
+        return False
+    log = create_logger('root', default_logging)
+    log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) is valid...")
+
+    #
+    # Agent configuration sanity checks
+    #
+    log.info("Agent configuration checks...")
+
+    #
     # Verify agent configuration file existance
+    #
+    log.info(f"Verifying agent configuration file ({agent_conf_fn}) existance...")
     if not os.path.exists(agent_conf_fn):
-        logging.error(f"Configuration file {agent_conf_fn} doesn't exits... exiting!")
+        log.error(f"Configuration file ({agent_conf_fn}) doesn't exits... exiting!")
         return False
+    log.info(f"Agent configuration file ({agent_conf_fn}) exists...")
+
+    #
     # Try to parse agent configuration file
-    logging.info("Parsing agent configuration...")
+    #
+    log.info(f"Parsing agent configuration file ({agent_conf_fn})...")
     try:
         with open(agent_conf_fn) as conf_fn:
             agent_conf = conf_fn.read()
-        yaml.load(agent_conf)
-    except yaml.YAMLError as exc:
-        logging.error("Error parsing agent yaml configuration file... exiting!")
-        logging.error(exc)
+        agent_conf = yaml.load(agent_conf)
+    except yaml.YAMLError as e:
+        log.error(f"Error parsing agent logger configuration file ({agent_conf_fn})... exiting!")
+        log.error(e)
         return False
-    # Checks passed
-    logging.info("Sanity checks successfully passed...")
-    logging.info("Starting agent...")
-    return True
+    log.info(f"Successfully parsed agent logger configuration file ({agent_conf_fn})...")
+
+    #
+    # Ckeck agent configuration items
+    #
+    log.info(f"Checking agent configuration file ({agent_conf_fn}) items...")
+    #
+    # Check interfaces item
+    #
+    log.info(f"Checking agent configuration file ({agent_conf_fn}) item interfaces...")
+    iflist = agent_conf.get("interfaces", None)
+    if iflist is None:
+        log.error(f"Missing interfaces in agent configuration file ({agent_conf_fn})... Exiting!")
+        return False
+    if type(iflist) is not list:
+        log.error(f"Interfaces in agent configuration file ({agent_conf_fn}) must be a list... Exiting!")
+        return False
+    log.info(f"Interfaces in agent configuration file ({agent_conf_fn}) passed...")
+    log.info(f"Items in agent configuration file ({agent_conf_fn}) passed...")
+
+    #
+    # Exiting sanity checks with the relevant message
+    #
+    if conf_ok:
+        log.info("Agent configuration checks passed. Starting the agent...")
+        return False
+    else:
+        log.error("Agent configuration checks failed... Exiting!")
+        return False
 
 
 def agent(logger_conf_fn, agent_conf_fn):
-    if conf_is_ok(logger_conf_fn, agent_conf_fn):
-        pass
-        # Load configurations
-        logger_conf = logger_conf_loader(logger_conf_fn)
-        agent_conf = agent_conf_loader(agent_conf_fn)
-        # Create FIFO queues
-        msg_queue = queue.Queue()
-        pkt_queue = queue.Queue()
-        ent_queue = queue.Queue()
-        # Create workers
-        messenger = Messenger(
-            logger_conf,
-            msg_queue
-        )
-        exporter = Exporter(
-            ent_queue,
-            msg_queue
-        )
-        processor = Processor(
-            pkt_queue,
-            ent_queue,
-            msg_queue,
-            agent_conf["cache_limit"],
-            agent_conf["cache_active_timeout"],
-            agent_conf["cache_inactive_timeout"],
-        )
-        sniffer = Sniffer(
-            pkt_queue,
-            msg_queue,
-            interface=agent_conf["interfaces"][0]
-        )
-        # Start workers
-        messenger.start()
-        exporter.start()
-        processor.start()
-        sniffer.start()
-        try:
-            while True:
-                time.sleep(100)
-        except KeyboardInterrupt:
-            msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
-            sniffer.join()
-            if sniffer.isAlive():
-                sniffer.socket.close()
-            processor.join()
-            exporter.join()
-            messenger.join()
+    if not conf_is_ok(logger_conf_fn, agent_conf_fn):
+        return
+    # Load configurations
+    logger_conf = logger_conf_loader(logger_conf_fn)
+    agent_conf = agent_conf_loader(agent_conf_fn)
+    # Create FIFO queues
+    msg_queue = queue.Queue()
+    pkt_queue = queue.Queue()
+    ent_queue = queue.Queue()
+    # Create workers
+    messenger = Messenger(
+        logger_conf,
+        msg_queue
+    )
+    exporter = Exporter(
+        ent_queue,
+        msg_queue
+    )
+    processor = Processor(
+        pkt_queue,
+        ent_queue,
+        msg_queue,
+        agent_conf["cache_limit"],
+        agent_conf["cache_active_timeout"],
+        agent_conf["cache_inactive_timeout"],
+    )
+    sniffer = Sniffer(
+        pkt_queue,
+        msg_queue,
+        interface=agent_conf["interfaces"][0]
+    )
+    # Start workers
+    messenger.start()
+    exporter.start()
+    processor.start()
+    sniffer.start()
+    try:
+        while True:
+            time.sleep(100)
+    except KeyboardInterrupt:
+        msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
+        sniffer.join()
+        if sniffer.isAlive():
+            sniffer.socket.close()
+        processor.join()
+        exporter.join()
+        messenger.join()
 
 
 def main():
