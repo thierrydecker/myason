@@ -26,7 +26,7 @@ class Sniffer(threading.Thread):
     def __init__(self, pkts, messages, interface=None):
         super().__init__()
         self.worker_number += 1
-        self.name = f"{self.worker_group}_{self.worker_number}"
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.daemon = True
         self.socket = None
         self.interface = interface
@@ -71,7 +71,7 @@ class Messenger(threading.Thread):
     def __init__(self, logger_conf, messages):
         super().__init__()
         self.worker_number += 1
-        self.name = f"{self.worker_group}_{self.worker_number}"
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.messages = messages
         self.stop = threading.Event()
         self.logger_conf = logger_conf
@@ -127,7 +127,7 @@ class Processor(threading.Thread):
     def __init__(self, packets, entries, messages, cache_limit, cache_active_timeout, cache_inactive_timeout):
         super().__init__()
         self.worker_number += 1
-        self.name = f"{self.worker_group}_{self.worker_number}"
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.packets = packets
         self.messages = messages
         self.entries = entries
@@ -260,7 +260,7 @@ class Exporter(threading.Thread):
     def __init__(self, entries, messages):
         super().__init__()
         self.worker_number += 1
-        self.name = f"{self.worker_group}_{self.worker_number}"
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.entries = entries
         self.messages = messages
         self.stop = threading.Event()
