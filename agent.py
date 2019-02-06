@@ -65,8 +65,13 @@ class Sniffer(threading.Thread):
 
 
 class Messenger(threading.Thread):
+    worker_group = "messenger"
+    worker_number = 0
+
     def __init__(self, logger_conf, messages):
-        super().__init__(name="messenger")
+        super().__init__()
+        self.worker_number += 1
+        self.name = f"{self.worker_group}_{self.worker_number}"
         self.messages = messages
         self.stop = threading.Event()
         self.logger_conf = logger_conf
@@ -116,8 +121,13 @@ class Messenger(threading.Thread):
 
 
 class Processor(threading.Thread):
+    worker_group = "processor"
+    worker_number = 0
+
     def __init__(self, packets, entries, messages, cache_limit, cache_active_timeout, cache_inactive_timeout):
-        super().__init__(name="processor")
+        super().__init__()
+        self.worker_number += 1
+        self.name = f"{self.worker_group}_{self.worker_number}"
         self.packets = packets
         self.messages = messages
         self.entries = entries
@@ -244,8 +254,13 @@ class Processor(threading.Thread):
 
 
 class Exporter(threading.Thread):
+    worker_group = "exporter"
+    worker_number = 0
+
     def __init__(self, entries, messages):
-        super().__init__(name="exporter")
+        super().__init__()
+        self.worker_number += 1
+        self.name = f"{self.worker_group}_{self.worker_number}"
         self.entries = entries
         self.messages = messages
         self.stop = threading.Event()
