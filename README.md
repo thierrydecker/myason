@@ -29,9 +29,9 @@ Myason:
 
     positional arguments:
 
-        {agent,server}  either agent or server instance
+        {agent,collector} either agent or collector instance
             agent           agent help
-            server          server help
+            collector       server help
 
     optional arguments:
 
