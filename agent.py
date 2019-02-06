@@ -20,8 +20,13 @@ import ifaddr
 
 
 class Sniffer(threading.Thread):
+    worker_group = "sniffer"
+    worker_number = 0
+
     def __init__(self, pkts, messages, interface=None):
-        super().__init__(name="sniffer")
+        super().__init__()
+        self.worker_number += 1
+        self.name = f"{self.worker_group}_{self.worker_number}"
         self.daemon = True
         self.socket = None
         self.interface = interface
