@@ -40,11 +40,15 @@ class Sniffer(threading.Thread):
             iface=self.interface,
         )
         self.messages.put(("INFO", f"{self.name}: up and running..."))
-        sniff(
-            opened_socket=self.socket,
-            prn=self.process_packet,
-            stop_filter=self.should_stop_sniffer
-        )
+        while True:
+            sniff(
+                opened_socket=self.socket,
+                prn=self.process_packet,
+                stop_filter=self.should_stop_sniffer,
+                timeout=1.0
+            )
+            if self.stop.isSet():
+                break
 
     def join(self, timeout=None):
         self.stop.set()
