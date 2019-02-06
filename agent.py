@@ -23,7 +23,7 @@ class Sniffer(threading.Thread):
     worker_group = "sniffer"
     worker_number = 0
 
-    def __init__(self, pkts, messages, interface=None):
+    def __init__(self, pkts, messages, interface):
         super().__init__()
         Sniffer.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
@@ -60,7 +60,7 @@ class Sniffer(threading.Thread):
         return self.stop.isSet()
 
     def process_packet(self, pkt):
-        self.messages.put(("DEBUG", f"{self.name}: Received a frame... {pkt.summary()}"))
+        self.messages.put(("DEBUG", f"{self.name}: Received a frame... {pkt.summary()} on '{self.interface}'"))
         if Ether in pkt:
             self.messages.put(("DEBUG", f"{self.name}: Frame is Ethernet..."))
             self.pkts.put(pkt)
