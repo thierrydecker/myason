@@ -323,17 +323,14 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     }
     log = create_logger('root', default_logging)
     conf_ok = True
-
     #
     # Configurations sanity chacks
     #
     log.info("Beginning agent configuration sanity checks...")
-
     #
     # Agent logger configuration sanity checks
     #
     log.info("Agent logger configuration checks...")
-
     #
     # Verify agent logger configuration file existance
     #
@@ -342,7 +339,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(f"Configuration file ({agent_logger_conf_fn}) doesn't exits... exiting!")
         return False
     log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) exists...")
-
     #
     # Try to parse agent logger configuration file
     #
@@ -356,7 +352,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(e)
         return False
     log.info(f"Successfully parsed agent logger configuration file ({agent_logger_conf_fn})...")
-
     #
     # Verify agent logger conf is a valid configuration
     #
@@ -369,12 +364,10 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         return False
     log = create_logger('root', default_logging)
     log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) is valid...")
-
     #
     # Agent configuration sanity checks
     #
     log.info("Agent configuration checks...")
-
     #
     # Verify agent configuration file existance
     #
@@ -383,7 +376,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(f"Configuration file ({agent_conf_fn}) doesn't exits... exiting!")
         return False
     log.info(f"Agent configuration file ({agent_conf_fn}) exists...")
-
     #
     # Try to parse agent configuration file
     #
@@ -397,7 +389,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(e)
         return False
     log.info(f"Successfully parsed agent logger configuration file ({agent_conf_fn})...")
-
     #
     # Ckeck agent configuration items
     #
