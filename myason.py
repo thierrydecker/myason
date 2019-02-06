@@ -18,7 +18,7 @@ def main():
     parser_agent.add_argument("-lc", "--agent-logger-conf", default="agent_logger.yml")
     parser_agent.add_argument("-ac", "--agent-conf", default="agent.yml")
     # create the parser for "collector" command
-    parser_server = subparsers.add_parser(name="collector", help="server help")
+    parser_collector = subparsers.add_parser(name="collector", help="server help")
     # parse arguments
     arguments = parser.parse_args()
     if arguments.app == "agent":
