@@ -450,58 +450,59 @@ def agent(logger_conf_fn, agent_conf_fn):
     # Load configurations
     logger_conf = logger_conf_loader(logger_conf_fn)
     agent_conf = agent_conf_loader(agent_conf_fn)
-    # Create FIFO queues
+    # Create the messages queue
     msg_queue = queue.Queue()
-    pkt_queue = queue.Queue()
-    ent_queue = queue.Queue()
-    # Create messenger
+    # Create the messenger worker
     messenger = Messenger(
         logger_conf,
         msg_queue
     )
-    # Create exporter
-    exporter = Exporter(
-        ent_queue,
-        msg_queue
-    )
-    # Create processor
-    processor = Processor(
-        pkt_queue,
-        ent_queue,
-        msg_queue,
-        agent_conf.get("cache_limit", 1024),
-        agent_conf.get("cache_active_timeout", 1800),
-        agent_conf.get("cache_inactive_timeout", 15),
-    )
-
-    # Create sniffer
-    sniffer = Sniffer(
-        pkt_queue,
-        msg_queue,
-        interface=agent_conf["interfaces"][0]
-    )
-    # Start messenger
+    # Start a stack of workers for each interface
+    interfaces = agent_conf["interfaces"]
+    workers_stack = dict()
+    for interface in interfaces:
+        pkt_queue = queue.Queue()
+        ent_queue = queue.Queue()
+        workers_stack[interface] = {
+            "sniffer": Sniffer(
+                pkt_queue,
+                msg_queue,
+                interface=interface,
+            ),
+            "processor": Processor(
+                pkt_queue,
+                ent_queue,
+                msg_queue,
+                agent_conf.get("cache_limit", 1024),
+                agent_conf.get("cache_active_timeout", 1800),
+                agent_conf.get("cache_inactive_timeout", 15),
+            ),
+            "exporter": Exporter(
+                ent_queue,
+                msg_queue,
+            ),
+        }
+    # Start the messenger worker
     messenger.start()
-    # Start exporter
-    exporter.start()
-    # Start processors
-    processor.start()
-    # Start sniffer
-    sniffer.start()
+    # Start the stack of workers
+    for interface in interfaces:
+        workers_stack[interface]["exporter"].start()
+        workers_stack[interface]["processor"].start()
+        workers_stack[interface]["sniffer"].start()
+    # Infinite loop until KeyBoardInterrupt
     try:
         while True:
             time.sleep(100)
     except KeyboardInterrupt:
         msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
-        # Stop sniffer
-        sniffer.join()
-        if sniffer.isAlive():
-            sniffer.socket.close()
-        # Stop processors
-        processor.join()
-        # Stop exporter
-        exporter.join()
-        # Stop messenger
+        # Stop The stack of workers
+        for interface in interfaces:
+            workers_stack[interface]["sniffer"].join()
+            if workers_stack[interface]["sniffer"].isAlive():
+                workers_stack[interface]["sniffer"].socket.close()
+            workers_stack[interface]["processor"].join()
+            workers_stack[interface]["exporter"].join()
+        # Stop the messenger worker
         messenger.join()
 
 
