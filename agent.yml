@@ -1,8 +1,6 @@
 # Agent configuration
 interfaces: [
-  "Intel(R) Dual Band Wireless-AC 7265",
-  "Bluetooth Device (Personal Area Network)",
-  "Realtek PCIe GBE Family Controller #2"
+  "Intel(R) Dual Band Wireless-AC 7265"
 ]
 cache_limit: 1024
 cache_active_timeout: 1800
