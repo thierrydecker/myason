@@ -25,13 +25,14 @@ We strongly encourage using virtual environnements in the developement process.
 ## Application usage
 Myason:
 
-    python myason.py [-h] {agent, server} ...
+    python myason.py [-h] {agent,collector,ifconfig} ...
 
     positional arguments:
 
-        {agent,collector} either agent or collector instance
+        {agent,collector,ifconfig}
             agent           agent help
             collector       server help
+            ifconfig        Prints list of available adapters
 
     optional arguments:
 
@@ -45,6 +46,14 @@ Myason agent:
             -h, --help          show this help message and exit
             -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
             -ac AGENT_CONF,     --agent-conf AGENT_CONF
+
+Myason ifconfig:
+
+    python myason ifconfig [-h]
+
+        optional arguments:
+            -h, --help  show this help message and exit
+
 
 ## Application architecture
 
