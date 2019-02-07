@@ -11,7 +11,6 @@ interfaces: [
   "Microsoft Wi-Fi Direct Virtual Adapter #3",
   "Intel(R) Dual Band Wireless-AC 7265",
   "Bluetooth Device (Personal Area Network)",
-  "Software Loopback Interface 1"
 ]
 
 #
