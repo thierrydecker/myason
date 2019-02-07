@@ -235,7 +235,7 @@ class Processor(threading.Thread):
             end_time = cache_temp[key_field]["end_time"]
             flags = cache_temp[key_field]["flags"]
             aged = False
-            if self.stop.is_set():
+            if self.stop.isSet():
                 # Export the entry as the agent exits
                 self.messages.put(("DEBUG", f"{self.name}: Deleting entry from cache. Agent ending..."))
                 aged = True
