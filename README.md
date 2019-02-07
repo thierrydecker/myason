@@ -29,9 +29,9 @@ Myason:
 
     positional arguments:
 
-        {agent,server}  either agent or server instance
+        {agent,collector} either agent or collector instance
             agent           agent help
-            server          server help
+            collector       server help
 
     optional arguments:
 
@@ -52,25 +52,26 @@ Myason agent:
 
 ![alt text](images/myason_agent_architecture.jpg)
 
-Four threads are running:
+A stack of three threads is running for each listenned interface :
 
 - A sniffer in charge of capturing the packets.
 
 - A packet processor in charge of the packets dissection.
 
-- A message processor in charge of the logging stuff.
-
 - An exporter processor in charge of sending flow entries to a collector.
+
+A message processor in charge of the logging stuff of previous threads.
 
 These threads communicate to each other by the mean of three thread-safe FIFO queues:
 
 - A packets queue filled by the sniffer and consumed by the packet processor.
 
-- A messages queue filled by the sniffer, the packet processor
-and the exporter processor and consumed by the message processor.
 
-- An flow entries queue filled by the packet processor and consumed by
+- A flow entries queue filled by the packet processor and consumed by
 the exporter processor.
+
+- A messages queue filled by the sniffer, the packet and the exporter processors
+and consumed by the message processor.
 
 ### Packet processor
 

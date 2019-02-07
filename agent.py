@@ -20,8 +20,13 @@ import ifaddr
 
 
 class Sniffer(threading.Thread):
-    def __init__(self, pkts, messages, interface=None):
-        super().__init__(name="sniffer")
+    worker_group = "sniffer"
+    worker_number = 0
+
+    def __init__(self, pkts, messages, interface):
+        super().__init__()
+        Sniffer.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.daemon = True
         self.socket = None
         self.interface = interface
@@ -35,11 +40,15 @@ class Sniffer(threading.Thread):
             iface=self.interface,
         )
         self.messages.put(("INFO", f"{self.name}: up and running..."))
-        sniff(
-            opened_socket=self.socket,
-            prn=self.process_packet,
-            stop_filter=self.should_stop_sniffer
-        )
+        while True:
+            sniff(
+                opened_socket=self.socket,
+                prn=self.process_packet,
+                stop_filter=self.should_stop_sniffer,
+                timeout=1.0
+            )
+            if self.stop.isSet():
+                break
 
     def join(self, timeout=None):
         self.stop.set()
@@ -51,7 +60,7 @@ class Sniffer(threading.Thread):
         return self.stop.isSet()
 
     def process_packet(self, pkt):
-        self.messages.put(("DEBUG", f"{self.name}: Received a frame... {pkt.summary()}"))
+        self.messages.put(("DEBUG", f"{self.name}: Received a frame... {pkt.summary()} on '{self.interface}'"))
         if Ether in pkt:
             self.messages.put(("DEBUG", f"{self.name}: Frame is Ethernet..."))
             self.pkts.put(pkt)
@@ -60,8 +69,13 @@ class Sniffer(threading.Thread):
 
 
 class Messenger(threading.Thread):
+    worker_group = "messenger"
+    worker_number = 0
+
     def __init__(self, logger_conf, messages):
-        super().__init__(name="messenger")
+        super().__init__()
+        Messenger.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.messages = messages
         self.stop = threading.Event()
         self.logger_conf = logger_conf
@@ -111,8 +125,13 @@ class Messenger(threading.Thread):
 
 
 class Processor(threading.Thread):
+    worker_group = "processor"
+    worker_number = 0
+
     def __init__(self, packets, entries, messages, cache_limit, cache_active_timeout, cache_inactive_timeout):
-        super().__init__(name="processor")
+        super().__init__()
+        Processor.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.packets = packets
         self.messages = messages
         self.entries = entries
@@ -216,7 +235,7 @@ class Processor(threading.Thread):
             end_time = cache_temp[key_field]["end_time"]
             flags = cache_temp[key_field]["flags"]
             aged = False
-            if self.stop.is_set():
+            if self.stop.isSet():
                 # Export the entry as the agent exits
                 self.messages.put(("DEBUG", f"{self.name}: Deleting entry from cache. Agent ending..."))
                 aged = True
@@ -239,8 +258,13 @@ class Processor(threading.Thread):
 
 
 class Exporter(threading.Thread):
+    worker_group = "exporter"
+    worker_number = 0
+
     def __init__(self, entries, messages):
-        super().__init__(name="exporter")
+        super().__init__()
+        Exporter.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.entries = entries
         self.messages = messages
         self.stop = threading.Event()
@@ -323,17 +347,14 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     }
     log = create_logger('root', default_logging)
     conf_ok = True
-
     #
     # Configurations sanity chacks
     #
     log.info("Beginning agent configuration sanity checks...")
-
     #
     # Agent logger configuration sanity checks
     #
     log.info("Agent logger configuration checks...")
-
     #
     # Verify agent logger configuration file existance
     #
@@ -342,7 +363,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(f"Configuration file ({agent_logger_conf_fn}) doesn't exits... exiting!")
         return False
     log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) exists...")
-
     #
     # Try to parse agent logger configuration file
     #
@@ -356,7 +376,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(e)
         return False
     log.info(f"Successfully parsed agent logger configuration file ({agent_logger_conf_fn})...")
-
     #
     # Verify agent logger conf is a valid configuration
     #
@@ -369,12 +388,10 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         return False
     log = create_logger('root', default_logging)
     log.info(f"Agent logger configuration file ({agent_logger_conf_fn}) is valid...")
-
     #
     # Agent configuration sanity checks
     #
     log.info("Agent configuration checks...")
-
     #
     # Verify agent configuration file existance
     #
@@ -383,7 +400,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(f"Configuration file ({agent_conf_fn}) doesn't exits... exiting!")
         return False
     log.info(f"Agent configuration file ({agent_conf_fn}) exists...")
-
     #
     # Try to parse agent configuration file
     #
@@ -397,7 +413,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(e)
         return False
     log.info(f"Successfully parsed agent logger configuration file ({agent_conf_fn})...")
-
     #
     # Ckeck agent configuration items
     #
@@ -439,47 +454,59 @@ def agent(logger_conf_fn, agent_conf_fn):
     # Load configurations
     logger_conf = logger_conf_loader(logger_conf_fn)
     agent_conf = agent_conf_loader(agent_conf_fn)
-    # Create FIFO queues
+    # Create the messages queue
     msg_queue = queue.Queue()
-    pkt_queue = queue.Queue()
-    ent_queue = queue.Queue()
-    # Create workers
+    # Create the messenger worker
     messenger = Messenger(
         logger_conf,
         msg_queue
     )
-    exporter = Exporter(
-        ent_queue,
-        msg_queue
-    )
-    processor = Processor(
-        pkt_queue,
-        ent_queue,
-        msg_queue,
-        agent_conf.get("cache_limit", 1024),
-        agent_conf.get("cache_active_timeout", 1800),
-        agent_conf.get("cache_inactive_timeout", 15),
-    )
-    sniffer = Sniffer(
-        pkt_queue,
-        msg_queue,
-        interface=agent_conf["interfaces"][0]
-    )
-    # Start workers
+    # Start a stack of workers for each interface
+    interfaces = agent_conf["interfaces"]
+    workers_stack = dict()
+    for interface in interfaces:
+        pkt_queue = queue.Queue()
+        ent_queue = queue.Queue()
+        workers_stack[interface] = {
+            "sniffer": Sniffer(
+                pkt_queue,
+                msg_queue,
+                interface=interface,
+            ),
+            "processor": Processor(
+                pkt_queue,
+                ent_queue,
+                msg_queue,
+                agent_conf.get("cache_limit", 1024),
+                agent_conf.get("cache_active_timeout", 1800),
+                agent_conf.get("cache_inactive_timeout", 15),
+            ),
+            "exporter": Exporter(
+                ent_queue,
+                msg_queue,
+            ),
+        }
+    # Start the messenger worker
     messenger.start()
-    exporter.start()
-    processor.start()
-    sniffer.start()
+    # Start the stack of workers
+    for interface in interfaces:
+        workers_stack[interface]["exporter"].start()
+        workers_stack[interface]["processor"].start()
+        workers_stack[interface]["sniffer"].start()
+    # Infinite loop until KeyBoardInterrupt
     try:
         while True:
             time.sleep(100)
     except KeyboardInterrupt:
         msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
-        sniffer.join()
-        if sniffer.isAlive():
-            sniffer.socket.close()
-        processor.join()
-        exporter.join()
+        # Stop The stack of workers
+        for interface in interfaces:
+            workers_stack[interface]["sniffer"].join()
+            if workers_stack[interface]["sniffer"].isAlive():
+                workers_stack[interface]["sniffer"].socket.close()
+            workers_stack[interface]["processor"].join()
+            workers_stack[interface]["exporter"].join()
+        # Stop the messenger worker
         messenger.join()
 
 
