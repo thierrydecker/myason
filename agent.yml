@@ -1,7 +1,21 @@
+#
 # Agent configuration
+#
+
+#
+# Interfaces to sniff
+#
 interfaces: [
-  "Intel(R) Dual Band Wireless-AC 7265"
+  "Realtek PCIe GBE Family Controller #2",
+  "Microsoft Wi-Fi Direct Virtual Adapter",
+  "Microsoft Wi-Fi Direct Virtual Adapter #3",
+  "Intel(R) Dual Band Wireless-AC 7265",
+  "Bluetooth Device (Personal Area Network)",
 ]
+
+#
+# Cache aging setup
+#
 cache_limit: 1024
 cache_active_timeout: 1800
 cache_inactive_timeout: 15
