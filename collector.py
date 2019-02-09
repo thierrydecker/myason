@@ -185,7 +185,7 @@ class Listener(threading.Thread):
         self.messages.put(("INFO", f"{self.name}: processing remaining records..."))
         time.sleep(0.5)
 
-    def process_data_received(self, record):
+    def process_received_data(self, record):
         time.sleep(0.5)
 
 
