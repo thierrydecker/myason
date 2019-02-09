@@ -22,8 +22,8 @@ Myason developement is currently based on following technologies:
 
 We strongly encourage using virtual environnements in the developement process. 
 
-## Application usage
-### Myason:
+# Application usage
+## Myason:
 
     python myason.py [-h] {agent,collector,ifconfig} ...
 
@@ -38,7 +38,7 @@ We strongly encourage using virtual environnements in the developement process.
 
         -h, --help show this help message and exit
 
-### Myason agent:
+## Myason agent:
 
     python myason.py agent [-h]  [-lc LOGGER_CONF] [-ac AGENT_CONF]
 
@@ -47,7 +47,7 @@ We strongly encourage using virtual environnements in the developement process.
             -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
             -ac AGENT_CONF,     --agent-conf AGENT_CONF
 
-### Myason collector:
+## Myason collector:
 
     python myason.py collector [-h]  [-lc LOGGER_CONF] [-cc COLLECTOR_CONF]
 
@@ -56,7 +56,7 @@ We strongly encourage using virtual environnements in the developement process.
             -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
             -ac COLLECTOR_CONF, --collector-conf COLLECTOR_CONF
 
-### Myason ifconfig:
+## Myason ifconfig:
 
     python myason ifconfig [-h]
 
