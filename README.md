@@ -22,7 +22,7 @@ Myason developement is currently based on following technologies:
 
 We strongly encourage using virtual environnements in the developement process. 
 
-## Application usage
+# Application usage
 Myason:
 
     python myason.py [-h] {agent,collector,ifconfig} ...
@@ -55,11 +55,11 @@ Myason ifconfig:
             -h, --help  show this help message and exit
 
 
-## Application architecture
+# Application architecture
 
-### Agent
+## Agent
 
-![alt text](images/myason_agent_architecture.jpg)
+![Agent architecture](images/myason_agent_architecture.jpg)
 
 A stack of four threads is running for each listenned interface :
 
@@ -82,7 +82,7 @@ the exporter processor.
 - A messages queue filled by the sniffer, the packet and the exporter processors
 and consumed by the message processor.
 
-### Packet processor
+## Packet processor
 
 Everything begins with the **cache** and ends with the **exporter**.
 
@@ -135,10 +135,14 @@ then delete. These are listed in order of precedence:
 - A TCP connection has been terminated by a RST (reset) or FIN (finish) flag in the flow.
 - An active flow timer or inactive flow timer limit is reached.
 
-### Exporter processor
+## Exporter processor
 
 The exporter processor sends the aged flow entries to the collector which is in
 charge of storing them.
+
+## Collector
+
+![Collector architecture](images/myason_collector_architecture.jpg)
 
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
