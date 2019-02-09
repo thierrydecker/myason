@@ -61,7 +61,7 @@ Myason ifconfig:
 
 ![alt text](images/myason_agent_architecture.jpg)
 
-A stack of three threads is running for each listenned interface :
+A stack of four threads is running for each listenned interface :
 
 - A sniffer in charge of capturing the packets.
 
@@ -69,14 +69,14 @@ A stack of three threads is running for each listenned interface :
 
 - An exporter processor in charge of sending flow entries to a collector.
 
-A message processor in charge of the logging stuff of previous threads.
+- A message processor in charge of the logging stuff of previous threads.
 
 These threads communicate to each other by the mean of three thread-safe FIFO queues:
 
 - A packets queue filled by the sniffer and consumed by the packet processor.
 
 
-- A flow entries queue filled by the packet processor and consumed by
+- A flows entries queue filled by the packet processor and consumed by
 the exporter processor.
 
 - A messages queue filled by the sniffer, the packet and the exporter processors
