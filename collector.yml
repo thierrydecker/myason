@@ -2,5 +2,5 @@
 # Collector configuration
 #
 
-writers_number: 2
-processors_number: 2
+writers_number: 5
+processors_number: 5
