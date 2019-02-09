@@ -1,0 +1,6 @@
+#
+# Collector configuration
+#
+
+writers_number: 5
+processors_number: 5

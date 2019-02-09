@@ -22,8 +22,8 @@ Myason developement is currently based on following technologies:
 
 We strongly encourage using virtual environnements in the developement process. 
 
-## Application usage
-Myason:
+# Application usage
+## Myason:
 
     python myason.py [-h] {agent,collector,ifconfig} ...
 
@@ -38,7 +38,7 @@ Myason:
 
         -h, --help show this help message and exit
 
-Myason agent:
+## Myason agent:
 
     python myason.py agent [-h]  [-lc LOGGER_CONF] [-ac AGENT_CONF]
 
@@ -47,7 +47,16 @@ Myason agent:
             -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
             -ac AGENT_CONF,     --agent-conf AGENT_CONF
 
-Myason ifconfig:
+## Myason collector:
+
+    python myason.py collector [-h]  [-lc LOGGER_CONF] [-cc COLLECTOR_CONF]
+
+        optional arguments:
+            -h, --help          show this help message and exit
+            -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
+            -ac COLLECTOR_CONF, --collector-conf COLLECTOR_CONF
+
+## Myason ifconfig:
 
     python myason ifconfig [-h]
 
@@ -55,11 +64,11 @@ Myason ifconfig:
             -h, --help  show this help message and exit
 
 
-## Application architecture
+# Application architecture
 
-### Agent
+## Agent
 
-![alt text](images/myason_agent_architecture.jpg)
+![Agent architecture](images/myason_agent_architecture.jpg)
 
 A stack of four threads is running for each listenned interface :
 
@@ -139,6 +148,21 @@ then delete. These are listed in order of precedence:
 
 The exporter processor sends the aged flow entries to the collector which is in
 charge of storing them.
+
+## Collector
+
+![Collector architecture](images/myason_collector_architecture.jpg)
+
+
+Three thread type are running:
+
+- A Listener
+
+- A (configurable number of) processor
+
+- A (configurable number of) writer
+
+- A messenger
 
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
