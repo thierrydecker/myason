@@ -84,7 +84,7 @@ class Writer(threading.Thread):
         while not self.stop.isSet():
             try:
                 ent = self.entries.get(block=False)
-                if msg is not None:
+                if ent is not None:
                     self.process_entry(ent)
             except queue.Empty:
                 time.sleep(0.5)
@@ -246,7 +246,7 @@ def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
     try:
         with open(collector_conf_fn) as conf_fn:
             collector_conf = conf_fn.read()
-        collector_conf = yaml.load(collector_conf)
+        yaml.load(collector_conf)
     except yaml.YAMLError as e:
         log.error(f"Error parsing collector configuration file ({collector_conf_fn})... exiting!")
         log.error(e)
