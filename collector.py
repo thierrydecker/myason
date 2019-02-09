@@ -141,7 +141,7 @@ class Processor(threading.Thread):
         self.messages.put(("INFO", f"{self.name}: stopped..."))
 
     def clean_up(self):
-        self.messages.put(("INFO", f"{self.name}: processing remaining recordss..."))
+        self.messages.put(("INFO", f"{self.name}: processing remaining records..."))
         while True:
             try:
                 rec = self.records.get(block=False)
@@ -152,6 +152,41 @@ class Processor(threading.Thread):
 
     def process_record(self, record):
         pass
+
+
+class Listener(threading.Thread):
+    worker_group = "listener"
+    worker_number = 0
+
+    def __init__(self, records, messages):
+        super().__init__()
+        Listener.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
+        self.records = records
+        self.messages = messages
+        self.stop = threading.Event()
+
+    def run(self):
+        self.messages.put(("INFO", f"{self.name}: up and running..."))
+        while not self.stop.isSet():
+            try:
+                time.sleep(0.5)
+            except queue.Empty:
+                time.sleep(0.5)
+
+    def join(self, timeout=None):
+        self.stop.set()
+        self.messages.put(("INFO", f"{self.name}: stopping..."))
+        self.clean_up()
+        super().join(timeout)
+        self.messages.put(("INFO", f"{self.name}: stopped..."))
+
+    def clean_up(self):
+        self.messages.put(("INFO", f"{self.name}: processing remaining records..."))
+        time.sleep(0.5)
+
+    def process_data_received(self, record):
+        time.sleep(0.5)
 
 
 def create_logger(name, configuration):
@@ -291,10 +326,7 @@ def collector(logger_conf_fn, collector_conf_fn):
     # Create the records queue
     rec_queue = queue.Queue()
     # Create the messenger worker
-    messenger = Messenger(
-        logger_conf,
-        msg_queue,
-    )
+    messenger = Messenger(logger_conf, msg_queue)
     # Start a stack of workers
     writers_number = collector_conf.get("writers_number", 1)
     writers = []
@@ -306,6 +338,8 @@ def collector(logger_conf_fn, collector_conf_fn):
     # Create processors
     for n in range(processors_number):
         processors.append(Processor(rec_queue, ent_queue, msg_queue))
+    # Create the listener worker
+    listener = Listener(rec_queue, msg_queue)
     # Start the messenger worker
     messenger.start()
     # Start writers
@@ -314,12 +348,16 @@ def collector(logger_conf_fn, collector_conf_fn):
     # Start processors
     for processor in processors:
         processor.start()
+    # Start the listener worker
+    listener.start()
     # Infinite loop until KeyBoardInterrupt
     try:
         while True:
             time.sleep(100)
     except KeyboardInterrupt:
         msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
+        # Stop the listener worker
+        listener.join()
         # Stop the processor workers
         for processor in processors:
             processor.join()
