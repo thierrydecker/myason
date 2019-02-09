@@ -3,11 +3,12 @@
 
 
 def collector():
-    print('Server started...')
+    print("Collector started...")
+    print("Collector stopped...")
 
 
 def main():
-    pass
+    collector()
 
 
 if __name__ == '__main__':
