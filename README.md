@@ -22,8 +22,8 @@ Myason developement is currently based on following technologies:
 
 We strongly encourage using virtual environnements in the developement process. 
 
-# Application usage
-Myason:
+## Application usage
+### Myason:
 
     python myason.py [-h] {agent,collector,ifconfig} ...
 
@@ -38,7 +38,7 @@ Myason:
 
         -h, --help show this help message and exit
 
-Myason agent:
+### Myason agent:
 
     python myason.py agent [-h]  [-lc LOGGER_CONF] [-ac AGENT_CONF]
 
@@ -47,7 +47,16 @@ Myason agent:
             -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
             -ac AGENT_CONF,     --agent-conf AGENT_CONF
 
-Myason ifconfig:
+### Myason collector:
+
+    python myason.py collector [-h]  [-lc LOGGER_CONF] [-cc COLLECTOR_CONF]
+
+        optional arguments:
+            -h, --help          show this help message and exit
+            -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
+            -ac COLLECTOR_CONF, --collector-conf COLLECTOR_CONF
+
+### Myason ifconfig:
 
     python myason ifconfig [-h]
 
@@ -82,7 +91,7 @@ the exporter processor.
 - A messages queue filled by the sniffer, the packet and the exporter processors
 and consumed by the message processor.
 
-## Packet processor
+### Packet processor
 
 Everything begins with the **cache** and ends with the **exporter**.
 
@@ -135,7 +144,7 @@ then delete. These are listed in order of precedence:
 - A TCP connection has been terminated by a RST (reset) or FIN (finish) flag in the flow.
 - An active flow timer or inactive flow timer limit is reached.
 
-## Exporter processor
+### Exporter processor
 
 The exporter processor sends the aged flow entries to the collector which is in
 charge of storing them.
