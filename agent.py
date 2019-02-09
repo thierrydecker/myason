@@ -409,10 +409,10 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
             agent_conf = conf_fn.read()
         agent_conf = yaml.load(agent_conf)
     except yaml.YAMLError as e:
-        log.error(f"Error parsing agent logger configuration file ({agent_conf_fn})... exiting!")
+        log.error(f"Error parsing agent configuration file ({agent_conf_fn})... exiting!")
         log.error(e)
         return False
-    log.info(f"Successfully parsed agent logger configuration file ({agent_conf_fn})...")
+    log.info(f"Successfully parsed agent configuration file ({agent_conf_fn})...")
     #
     # Ckeck agent configuration items
     #
