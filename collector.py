@@ -11,6 +11,105 @@ import threading
 import time
 
 
+class Writer(threading.Thread):
+    worker_group = "writer"
+    worker_number = 0
+
+    def __init__(self, entries, messages):
+        super().__init__()
+        Writer.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
+        self.entries = entries
+        self.messages = messages
+        self.stop = threading.Event()
+
+    def run(self):
+        self.messages.put(("INFO", f"{self.name}: up and running..."))
+        while not self.stop.isSet():
+            try:
+                msg = self.entries.get(block=False)
+                if msg is not None:
+                    self.process_entry(msg)
+            except queue.Empty:
+                time.sleep(0.5)
+
+    def join(self, timeout=None):
+        self.stop.set()
+        self.messages.put(("INFO", f"{self.name}: stopping..."))
+        self.clean_up()
+        super().join(timeout)
+        self.messages.put(("INFO", f"{self.name}: stopped..."))
+
+    def clean_up(self):
+        self.messages.put(("INFO", f"{self.name}: processing remaining messages..."))
+        while True:
+            try:
+                ent = self.entries.get(block=False)
+                if ent is not None:
+                    self.process_entry(ent)
+            except queue.Empty:
+                break
+
+    def process_entry(self, msg):
+        pass
+
+
+class Messenger(threading.Thread):
+    worker_group = "messenger"
+    worker_number = 0
+
+    def __init__(self, logger_conf, messages):
+        super().__init__()
+        Messenger.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
+        self.messages = messages
+        self.stop = threading.Event()
+        self.logger_conf = logger_conf
+        logging.config.dictConfig(self.logger_conf)
+        self.logger = logging.getLogger("myason_collector")
+
+    def run(self):
+        self.logger.info(f"{self.name}: up and running...")
+        while not self.stop.isSet():
+            try:
+                msg = self.messages.get(block=False)
+                if msg is not None:
+                    self.process_message(msg)
+            except queue.Empty:
+                time.sleep(0.5)
+
+    def join(self, timeout=None):
+        self.stop.set()
+        self.logger.info(f"{self.name}: stopping...")
+        self.clean_up()
+        super().join(timeout)
+        self.logger.info(f"{self.name}: stopped...")
+
+    def clean_up(self):
+        self.logger.info(f"{self.name}: processing remaining messages...")
+        while True:
+            try:
+                pkt = self.messages.get(block=False)
+                if pkt is not None:
+                    self.process_message(pkt)
+            except queue.Empty:
+                break
+
+    def process_message(self, msg):
+        if "DEBUG" == msg[0]:
+            self.logger.debug(msg[1])
+        elif "INFO" == msg[0]:
+            self.logger.info(msg[1])
+        elif "WARNING" == msg[0]:
+            self.logger.warning(msg[1])
+        elif "ERROR" == msg[0]:
+            self.logger.error(msg[1])
+        elif "CRITICAL" == msg[0]:
+            self.logger.critical(msg[1])
+        else:
+            self.logger.debug(msg[1])
+
+
 def create_logger(name, configuration):
     logging.config.dictConfig(configuration)
     return logging.getLogger(name)
@@ -103,62 +202,6 @@ def logger_conf_loader(logger_conf_fn):
     return logger_conf
 
 
-class Messenger(threading.Thread):
-    worker_group = "messenger"
-    worker_number = 0
-
-    def __init__(self, logger_conf, messages):
-        super().__init__()
-        Messenger.worker_number += 1
-        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
-        self.messages = messages
-        self.stop = threading.Event()
-        self.logger_conf = logger_conf
-        logging.config.dictConfig(self.logger_conf)
-        self.logger = logging.getLogger("myason_collector")
-
-    def run(self):
-        self.logger.info(f"{self.name}: up and running...")
-        while not self.stop.isSet():
-            try:
-                msg = self.messages.get(block=False)
-                if msg is not None:
-                    self.process_message(msg)
-            except queue.Empty:
-                time.sleep(0.5)
-
-    def join(self, timeout=None):
-        self.stop.set()
-        self.logger.info(f"{self.name}: stopping...")
-        self.clean_up()
-        super().join(timeout)
-        self.logger.info(f"{self.name}: stopped...")
-
-    def clean_up(self):
-        self.logger.info(f"{self.name}: processing remaining messages...")
-        while True:
-            try:
-                pkt = self.messages.get(block=False)
-                if pkt is not None:
-                    self.process_message(pkt)
-            except queue.Empty:
-                break
-
-    def process_message(self, msg):
-        if "DEBUG" == msg[0]:
-            self.logger.debug(msg[1])
-        elif "INFO" == msg[0]:
-            self.logger.info(msg[1])
-        elif "WARNING" == msg[0]:
-            self.logger.warning(msg[1])
-        elif "ERROR" == msg[0]:
-            self.logger.error(msg[1])
-        elif "CRITICAL" == msg[0]:
-            self.logger.critical(msg[1])
-        else:
-            self.logger.debug(msg[1])
-
-
 def collector(logger_conf_fn, collector_conf_fn):
     if not conf_is_ok(logger_conf_fn, collector_conf_fn):
         return
@@ -166,6 +209,8 @@ def collector(logger_conf_fn, collector_conf_fn):
     logger_conf = logger_conf_loader(logger_conf_fn)
     # Create the messages queue
     msg_queue = queue.Queue()
+    # Create the entries queue
+    ent_queue = queue.Queue()
     # Create the messenger worker
     messenger = Messenger(
         logger_conf,
@@ -174,12 +219,21 @@ def collector(logger_conf_fn, collector_conf_fn):
     # Start a stack of workers
     # Start the messenger worker
     messenger.start()
+    # Create the messenger worker
+    writer = Writer(
+        ent_queue,
+        msg_queue
+    )
+    # Start the writer worker
+    writer.start()
     # Infinite loop until KeyBoardInterrupt
     try:
         while True:
             time.sleep(100)
     except KeyboardInterrupt:
         msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
+        # Stop the writer worker
+        writer.join()
         # Stop the messenger worker
         messenger.join()
 
