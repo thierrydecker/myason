@@ -1,3 +1,6 @@
 #
 # Collector configuration
 #
+
+writers_number: 2
+processors_number: 2
