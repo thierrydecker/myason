@@ -183,6 +183,36 @@ def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
         return False
     log = create_logger('root', default_logging)
     log.info(f"Collector logger configuration file ({collector_logger_conf_fn}) is valid...")
+
+    #
+    # Collector configuration sanity checks
+    #
+    log.info("Collector configuration checks...")
+    #
+    # Verify collector configuration file existance
+    #
+    log.info(f"Verifying collector configuration file ({collector_conf_fn}) existance...")
+    if not os.path.exists(collector_conf_fn):
+        log.error(f"Configuration file ({collector_conf_fn}) doesn't exits... exiting!")
+        return False
+    log.info(f"Collector configuration file ({collector_conf_fn}) exists...")
+    #
+    # Try to parse agent configuration file
+    #
+    log.info(f"Parsing collector configuration file ({collector_conf_fn})...")
+    try:
+        with open(collector_conf_fn) as conf_fn:
+            collector_conf = conf_fn.read()
+        collector_conf = yaml.load(collector_conf)
+    except yaml.YAMLError as e:
+        log.error(f"Error parsing collector configuration file ({collector_conf_fn})... exiting!")
+        log.error(e)
+        return False
+    log.info(f"Successfully parsed collector configuration file ({collector_conf_fn})...")
+    #
+    # Ckeck agent configuration items
+    #
+
     #
     # Exiting sanity checks with the relevant message
     #
@@ -202,11 +232,19 @@ def logger_conf_loader(logger_conf_fn):
     return logger_conf
 
 
+def collector_conf_loader(collector_conf_fn):
+    with open(collector_conf_fn) as conf_fn:
+        collector_conf = conf_fn.read()
+    collector_conf = yaml.load(collector_conf)
+    return collector_conf
+
+
 def collector(logger_conf_fn, collector_conf_fn):
     if not conf_is_ok(logger_conf_fn, collector_conf_fn):
         return
     # Load configurations
     logger_conf = logger_conf_loader(logger_conf_fn)
+    collector_conf = collector_conf_loader(collector_conf_fn)
     # Create the messages queue
     msg_queue = queue.Queue()
     # Create the entries queue
