@@ -83,9 +83,9 @@ class Writer(threading.Thread):
         self.messages.put(("INFO", f"{self.name}: up and running..."))
         while not self.stop.isSet():
             try:
-                msg = self.entries.get(block=False)
+                ent = self.entries.get(block=False)
                 if msg is not None:
-                    self.process_entry(msg)
+                    self.process_entry(ent)
             except queue.Empty:
                 time.sleep(0.5)
 
@@ -106,7 +106,51 @@ class Writer(threading.Thread):
             except queue.Empty:
                 break
 
-    def process_entry(self, msg):
+    def process_entry(self, entry):
+        pass
+
+
+class Processor(threading.Thread):
+    worker_group = "processor"
+    worker_number = 0
+
+    def __init__(self, records, entries, messages):
+        super().__init__()
+        Processor.worker_number += 1
+        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
+        self.records = records
+        self.entries = entries
+        self.messages = messages
+        self.stop = threading.Event()
+
+    def run(self):
+        self.messages.put(("INFO", f"{self.name}: up and running..."))
+        while not self.stop.isSet():
+            try:
+                msg = self.records.get(block=False)
+                if msg is not None:
+                    self.process_record(msg)
+            except queue.Empty:
+                time.sleep(0.5)
+
+    def join(self, timeout=None):
+        self.stop.set()
+        self.messages.put(("INFO", f"{self.name}: stopping..."))
+        self.clean_up()
+        super().join(timeout)
+        self.messages.put(("INFO", f"{self.name}: stopped..."))
+
+    def clean_up(self):
+        self.messages.put(("INFO", f"{self.name}: processing remaining recordss..."))
+        while True:
+            try:
+                rec = self.records.get(block=False)
+                if rec is not None:
+                    self.process_record(rec)
+            except queue.Empty:
+                break
+
+    def process_record(self, record):
         pass
 
 
@@ -244,6 +288,8 @@ def collector(logger_conf_fn, collector_conf_fn):
     msg_queue = queue.Queue()
     # Create the entries queue
     ent_queue = queue.Queue()
+    # Create the records queue
+    rec_queue = queue.Queue()
     # Create the messenger worker
     messenger = Messenger(
         logger_conf,
@@ -252,21 +298,32 @@ def collector(logger_conf_fn, collector_conf_fn):
     # Start a stack of workers
     writers_number = collector_conf.get("writers_number", 1)
     writers = []
+    processors_number = collector_conf.get("processors_number", 1)
+    processors = []
     # Create writers
     for n in range(writers_number):
         writers.append(Writer(ent_queue, msg_queue))
+    # Create processors
+    for n in range(processors_number):
+        processors.append(Processor(rec_queue, ent_queue, msg_queue))
     # Start the messenger worker
     messenger.start()
     # Start writers
     for writer in writers:
         writer.start()
+    # Start processors
+    for processor in processors:
+        processor.start()
     # Infinite loop until KeyBoardInterrupt
     try:
         while True:
             time.sleep(100)
     except KeyboardInterrupt:
         msg_queue.put(("DEBUG", "KeyBoardInterrupt received. Stopping agent..."))
-        # Stop the writer worker
+        # Stop the processor workers
+        for processor in processors:
+            processor.join()
+        # Stop the writer workers
         for writer in writers:
             writer.join()
         # Stop the messenger worker
