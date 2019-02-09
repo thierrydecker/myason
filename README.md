@@ -153,5 +153,16 @@ charge of storing them.
 
 ![Collector architecture](images/myason_collector_architecture.jpg)
 
+
+Three thread type are running:
+
+- A Listener
+
+- A (configurable number of) processor
+
+- A (configurable number of) writer
+
+- A messenger
+
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
