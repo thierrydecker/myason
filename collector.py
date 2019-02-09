@@ -41,7 +41,7 @@ class Writer(threading.Thread):
         self.messages.put(("INFO", f"{self.name}: stopped..."))
 
     def clean_up(self):
-        self.messages.put(("INFO", f"{self.name}: processing remaining messages..."))
+        self.messages.put(("INFO", f"{self.name}: processing remaining entries..."))
         while True:
             try:
                 ent = self.entries.get(block=False)
