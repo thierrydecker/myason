@@ -284,7 +284,7 @@ class Exporter(threading.Thread):
                 time.sleep(0.5)
 
     def export_entry(self, entry):
-        self.messages.put(("DEBUG", f"{self.name}: Sending to ({self.address}, {self.port}): {entry}"))
+        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): {entry}"))
         self.sock.sendto(str(entry).encode(), (self.address, self.port))
 
     def join(self, timeout=None):
