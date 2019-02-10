@@ -160,20 +160,22 @@ class Listener(threading.Thread):
     worker_group = "listener"
     worker_number = 0
 
-    def __init__(self, records, messages):
+    def __init__(self, records, messages, sock, address, port):
         super().__init__()
         Listener.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.records = records
         self.messages = messages
+        self.sock = sock
+        self.address = address
+        self.port = port
         self.stop = threading.Event()
 
     def run(self):
         self.messages.put(("INFO", f"{self.name}: up and running..."))
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(("127.0.0.1", 9999))
+        self.sock.bind((self.address, self.port))
         while not self.stop.isSet():
-            rlist, wlist, elist = select.select([sock], [], [], 1)
+            rlist, wlist, elist = select.select([self.sock], [], [], 1)
             if rlist:
                 for sock in rlist:
                     data, ip = sock.recvfrom(1024)
@@ -319,6 +321,8 @@ def collector(logger_conf_fn, collector_conf_fn):
     # Load configurations
     logger_conf = logger_conf_loader(logger_conf_fn)
     collector_conf = collector_conf_loader(collector_conf_fn)
+    # Create socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # Create the messages queue
     msg_queue = queue.Queue()
     # Create the entries queue
@@ -339,7 +343,12 @@ def collector(logger_conf_fn, collector_conf_fn):
     for n in range(processors_number):
         processors.append(Processor(rec_queue, ent_queue, msg_queue))
     # Create the listener worker
-    listener = Listener(rec_queue, msg_queue)
+    listener = Listener(rec_queue,
+                        msg_queue,
+                        sock,
+                        collector_conf.get("bind_address", "127.0.0.1"),
+                        collector_conf.get("bind_port", 9999),
+                        )
     # Start the messenger worker
     messenger.start()
     # Start writers
