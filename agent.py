@@ -17,6 +17,7 @@ import logging
 import logging.config
 import os
 import ifaddr
+import socket
 
 
 class Sniffer(threading.Thread):
@@ -261,12 +262,15 @@ class Exporter(threading.Thread):
     worker_group = "exporter"
     worker_number = 0
 
-    def __init__(self, entries, messages):
+    def __init__(self, entries, messages, sock, address, port):
         super().__init__()
         Exporter.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.entries = entries
         self.messages = messages
+        self.sock = sock
+        self.address = address
+        self.port = port
         self.stop = threading.Event()
 
     def run(self):
@@ -280,7 +284,8 @@ class Exporter(threading.Thread):
                 time.sleep(0.5)
 
     def export_entry(self, entry):
-        self.messages.put(("DEBUG", f"{self.name}: {entry}"))
+        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): {entry}"))
+        self.sock.sendto(str(entry).encode(), (self.address, self.port))
 
     def join(self, timeout=None):
         self.stop.set()
@@ -299,6 +304,7 @@ class Exporter(threading.Thread):
             except queue.Empty:
                 break
         self.messages.put(("INFO", f"{self.name}: entries queue has been cleaned..."))
+        self.sock.close()
 
 
 def logger_conf_loader(logger_conf_fn):
@@ -346,7 +352,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         'disable_existing_loggers': False
     }
     log = create_logger('root', default_logging)
-    conf_ok = True
     #
     # Configurations sanity chacks
     #
@@ -433,19 +438,37 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     #
     adapters = [ifname.nice_name for ifname in ifaddr.get_adapters()]
     for ifname in iflist:
+        log.info(f"Checking agent configuration file ({agent_conf_fn}) interfaces names...")
         if ifname not in adapters:
-            log.error(f"Interface {ifname} in agent configuration file ({agent_conf_fn}) is not valid... Exiting!")
+            log.error(
+                f"Interface {ifname} in agent configuration file ({agent_conf_fn}), {ifname} is not valid... Exiting!"
+            )
     log.info(f"Interfaces in agent configuration file ({agent_conf_fn}) passed...")
+    #
+    # Ckeck socket creation
+    #
+    log.info(f"Checking agent configuration file ({agent_conf_fn}) socket creation...")
+    collector_address = agent_conf.get("collector_address", "127.0.0.1")
+    collector_port = agent_conf.get("collector_port", 9999)
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.sendto(str("Test").encode(), (collector_address, collector_port))
+    except OverflowError:
+        log.error(
+            f"Interfaces in agent configuration file ({agent_conf_fn}), collector_port={collector_port} invalid..."
+        )
+        return False
+    except socket.gaierror:
+        log.error(
+            f"Interfaces in agent configuration file ({agent_conf_fn}), collector_address={collector_address} invalid..."
+        )
+        return False
     #
     # Exiting sanity checks with the relevant message
     #
-    if conf_ok:
-        log.info("Agent configuration checks passed...")
-        log.info("Starting the agent...")
-        return True
-    else:
-        log.error("Agent configuration checks failed... Exiting!")
-        return False
+    log.info("Agent configuration checks passed...")
+    log.info("Starting the agent...")
+    return True
 
 
 def agent(logger_conf_fn, agent_conf_fn):
@@ -467,6 +490,7 @@ def agent(logger_conf_fn, agent_conf_fn):
     for interface in interfaces:
         pkt_queue = queue.Queue()
         ent_queue = queue.Queue()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         workers_stack[interface] = {
             "sniffer": Sniffer(
                 pkt_queue,
@@ -484,6 +508,9 @@ def agent(logger_conf_fn, agent_conf_fn):
             "exporter": Exporter(
                 ent_queue,
                 msg_queue,
+                sock,
+                agent_conf.get("collector_address", "127.0.0.1"),
+                agent_conf.get("collector_port", 9999),
             ),
         }
     # Start the messenger worker
