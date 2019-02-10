@@ -448,10 +448,10 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     # Ckeck socket creation
     #
     log.info(f"Checking agent configuration file ({agent_conf_fn}) socket creation...")
+    collector_address = agent_conf.get("collector_address", "127.0.0.1")
+    collector_port = agent_conf.get("collector_port", 9999)
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        collector_address = agent_conf.get("collector_address", "127.0.0.1")
-        collector_port = agent_conf.get("collector_port", 9999)
         sock.sendto(str("Test").encode(), (collector_address, collector_port))
     except OverflowError:
         log.error(
