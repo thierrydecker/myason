@@ -23,5 +23,5 @@ cache_inactive_timeout: 15
 #
 # Collector parameters
 #
-colector_address: "127.0.0.1"
-colector_port: 9999
+collector_address: "127.0.0.1"
+collector_port: 9999
