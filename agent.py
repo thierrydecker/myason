@@ -352,7 +352,6 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         'disable_existing_loggers': False
     }
     log = create_logger('root', default_logging)
-    conf_ok = True
     #
     # Configurations sanity chacks
     #
@@ -439,19 +438,37 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     #
     adapters = [ifname.nice_name for ifname in ifaddr.get_adapters()]
     for ifname in iflist:
+        log.info(f"Checking agent configuration file ({agent_conf_fn}) interfaces names...")
         if ifname not in adapters:
-            log.error(f"Interface {ifname} in agent configuration file ({agent_conf_fn}) is not valid... Exiting!")
+            log.error(
+                f"Interface {ifname} in agent configuration file ({agent_conf_fn}), {ifname} is not valid... Exiting!"
+            )
     log.info(f"Interfaces in agent configuration file ({agent_conf_fn}) passed...")
+    #
+    # Ckeck socket creation
+    #
+    log.info(f"Checking agent configuration file ({agent_conf_fn}) socket creation...")
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        collector_address = agent_conf.get("collector_address", "127.0.0.1")
+        collector_port = agent_conf.get("collector_port", 9999)
+        sock.sendto(str("Test").encode(), (collector_address, collector_port))
+    except OverflowError:
+        log.error(
+            f"Interfaces in agent configuration file ({agent_conf_fn}), collector_port={collector_port} invalid..."
+        )
+        return False
+    except socket.gaierror:
+        log.error(
+            f"Interfaces in agent configuration file ({agent_conf_fn}), collector_address={collector_address} invalid..."
+        )
+        return False
     #
     # Exiting sanity checks with the relevant message
     #
-    if conf_ok:
-        log.info("Agent configuration checks passed...")
-        log.info("Starting the agent...")
-        return True
-    else:
-        log.error("Agent configuration checks failed... Exiting!")
-        return False
+    log.info("Agent configuration checks passed...")
+    log.info("Starting the agent...")
+    return True
 
 
 def agent(logger_conf_fn, agent_conf_fn):
@@ -492,8 +509,8 @@ def agent(logger_conf_fn, agent_conf_fn):
                 ent_queue,
                 msg_queue,
                 sock,
-                address="192.168.1.53",
-                port=9999,
+                agent_conf.get("collector_address", "127.0.0.1"),
+                agent_conf.get("collector_port", 9999),
             ),
         }
     # Start the messenger worker
