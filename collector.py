@@ -129,9 +129,9 @@ class Processor(threading.Thread):
         self.messages.put(("INFO", f"{self.name}: up and running..."))
         while not self.stop.isSet():
             try:
-                msg = self.records.get(block=False)
-                if msg is not None:
-                    self.process_record(msg)
+                rec = self.records.get(block=False)
+                if rec is not None:
+                    self.process_record(rec)
             except queue.Empty:
                 time.sleep(0.5)
 
@@ -153,7 +153,8 @@ class Processor(threading.Thread):
                 break
 
     def process_record(self, record):
-        pass
+        data, ip = record
+        self.messages.put(("DEBUG", f"{self.name}: Processing record {data} received from {ip}"))
 
 
 class Listener(threading.Thread):
@@ -180,6 +181,7 @@ class Listener(threading.Thread):
                 for sock in rlist:
                     data, ip = sock.recvfrom(1024)
                     self.messages.put(("DEBUG", f"{self.name}: from {ip} received {data}"))
+                    self.records.put((data, ip))
 
     def join(self, timeout=None):
         self.stop.set()
@@ -190,10 +192,6 @@ class Listener(threading.Thread):
 
     def clean_up(self):
         self.messages.put(("INFO", f"{self.name}: processing remaining records..."))
-        time.sleep(0.5)
-
-    def process_received_data(self, record):
-        time.sleep(0.5)
 
 
 def create_logger(name, configuration):
