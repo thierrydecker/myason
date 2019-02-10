@@ -17,6 +17,7 @@ import logging
 import logging.config
 import os
 import ifaddr
+import socket
 
 
 class Sniffer(threading.Thread):
@@ -261,12 +262,15 @@ class Exporter(threading.Thread):
     worker_group = "exporter"
     worker_number = 0
 
-    def __init__(self, entries, messages):
+    def __init__(self, entries, messages, sock, address, port):
         super().__init__()
         Exporter.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.entries = entries
         self.messages = messages
+        self.sock = sock
+        self.address = address
+        self.port = port
         self.stop = threading.Event()
 
     def run(self):
@@ -280,7 +284,8 @@ class Exporter(threading.Thread):
                 time.sleep(0.5)
 
     def export_entry(self, entry):
-        self.messages.put(("DEBUG", f"{self.name}: {entry}"))
+        self.messages.put(("DEBUG", f"{self.name}: Sending to ({self.address}, {self.port}): {entry}"))
+        self.sock.sendto(str(entry).encode(), (self.address, self.port))
 
     def join(self, timeout=None):
         self.stop.set()
@@ -299,6 +304,7 @@ class Exporter(threading.Thread):
             except queue.Empty:
                 break
         self.messages.put(("INFO", f"{self.name}: entries queue has been cleaned..."))
+        self.sock.close()
 
 
 def logger_conf_loader(logger_conf_fn):
@@ -467,6 +473,7 @@ def agent(logger_conf_fn, agent_conf_fn):
     for interface in interfaces:
         pkt_queue = queue.Queue()
         ent_queue = queue.Queue()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         workers_stack[interface] = {
             "sniffer": Sniffer(
                 pkt_queue,
@@ -484,6 +491,9 @@ def agent(logger_conf_fn, agent_conf_fn):
             "exporter": Exporter(
                 ent_queue,
                 msg_queue,
+                sock,
+                address="192.168.1.53",
+                port=9999,
             ),
         }
     # Start the messenger worker
