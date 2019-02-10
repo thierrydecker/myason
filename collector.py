@@ -9,6 +9,8 @@ import yaml
 import queue
 import threading
 import time
+import socket
+import select
 
 
 class Messenger(threading.Thread):
@@ -168,11 +170,14 @@ class Listener(threading.Thread):
 
     def run(self):
         self.messages.put(("INFO", f"{self.name}: up and running..."))
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(("127.0.0.1", 9999))
         while not self.stop.isSet():
-            try:
-                time.sleep(0.5)
-            except queue.Empty:
-                time.sleep(0.5)
+            rlist, wlist, elist = select.select([sock], [], [], 1)
+            if rlist:
+                for sock in rlist:
+                    data, ip = sock.recvfrom(1024)
+                    self.messages.put(("DEBUG", f"{self.name}: from {ip} received {data}"))
 
     def join(self, timeout=None):
         self.stop.set()
@@ -220,7 +225,6 @@ def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
         'disable_existing_loggers': False
     }
     log = create_logger('root', default_logging)
-    conf_ok = True
     #
     # Configurations sanity chacks
     #
@@ -290,13 +294,9 @@ def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
     #
     # Exiting sanity checks with the relevant message
     #
-    if conf_ok:
-        log.info("Collector configuration checks passed...")
-        log.info("Starting the collector...")
-        return True
-    else:
-        log.error("Collector configuration checks failed... Exiting!")
-        return False
+    log.info("Collector configuration checks passed...")
+    log.info("Starting the collector...")
+    return True
 
 
 def logger_conf_loader(logger_conf_fn):
@@ -327,7 +327,7 @@ def collector(logger_conf_fn, collector_conf_fn):
     rec_queue = queue.Queue()
     # Create the messenger worker
     messenger = Messenger(logger_conf, msg_queue)
-    # Start a stack of workers
+    # Create a stack of workers
     writers_number = collector_conf.get("writers_number", 1)
     writers = []
     processors_number = collector_conf.get("processors_number", 1)
