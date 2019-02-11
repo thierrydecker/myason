@@ -12,7 +12,7 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
 loggers:
-  myason_agent:
+  myason:
     level: DEBUG
     handlers: [console]
     propagate: no

@@ -19,7 +19,7 @@ class Messenger(threading.Thread):
         self.stop = threading.Event()
         self.logger_conf = logger_conf
         logging.config.dictConfig(self.logger_conf)
-        self.logger = logging.getLogger("myason_agent")
+        self.logger = logging.getLogger("myason")
 
     def run(self):
         self.logger.info(f"{self.name}: up and running...")

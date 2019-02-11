@@ -2,7 +2,7 @@
 
 __all__ = [
     "sniffer",
-    "messenger",
     "processor",
     "exporter",
+    "conf",
 ]
