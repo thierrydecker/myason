@@ -4,6 +4,8 @@
 import threading
 import queue
 import time
+import json
+import base64
 
 
 class Processor(threading.Thread):
@@ -49,3 +51,10 @@ class Processor(threading.Thread):
     def process_record(self, record):
         data, ip = record
         self.messages.put(("DEBUG", f"{self.name}: Processing record {data} received from {ip}"))
+        # Decode base 64
+        data = base64.b64decode(data)
+        # Decode to json string
+        data = data.decode()
+        # Unmarshall json string to dict
+        data = dict(json.loads(data))
+        self.messages.put(("DEBUG", f"{self.name}: Unmarshalled {data} received from {ip}"))

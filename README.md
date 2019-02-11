@@ -149,6 +149,9 @@ then delete. These are listed in order of precedence:
 The exporter processor sends the aged flow entries to the collector which is in
 charge of storing them.
 
+The entries are marshalled to a json string, base 64 encoded and then sent to the
+collector.
+
 ## Collector
 
 ![Collector architecture](images/myason_collector_architecture.jpg)
