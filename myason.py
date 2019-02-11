@@ -21,7 +21,7 @@ def main():
     # Create the parser for "collector" command
     parser_collector = subparsers.add_parser(name="collector", help="collector help")
     parser_collector.add_argument("-lc", "--collector-logger-conf", default="config/collector_logger.yml")
-    parser_collector.add_argument("-ac", "--collector-conf", default="config/collector.yml")
+    parser_collector.add_argument("-cc", "--collector-conf", default="config/collector.yml")
     # Create the parser
     parser_ifconfig = subparsers.add_parser(name="ifconfig", help="Prints list of available adapters")
     # Parse arguments

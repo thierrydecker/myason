@@ -54,7 +54,7 @@ We strongly encourage using virtual environnements in the developement process.
         optional arguments:
             -h, --help          show this help message and exit
             -lc LOGGER_CONF,    --logger-conf LOGGER_CONF
-            -ac COLLECTOR_CONF, --collector-conf COLLECTOR_CONF
+            -cc COLLECTOR_CONF, --collector-conf COLLECTOR_CONF
 
 ## Myason ifconfig:
 
