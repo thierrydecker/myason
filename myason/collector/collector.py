@@ -2,201 +2,19 @@
 # -*- coding: utf-8 -*-
 
 
-import logging
-import logging.config
 import os
-import yaml
 import queue
-import threading
-import time
 import socket
-import select
+import time
 
+import yaml
 
-class Messenger(threading.Thread):
-    worker_group = "messenger"
-    worker_number = 0
-
-    def __init__(self, logger_conf, messages):
-        super().__init__()
-        Messenger.worker_number += 1
-        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
-        self.messages = messages
-        self.stop = threading.Event()
-        self.logger_conf = logger_conf
-        logging.config.dictConfig(self.logger_conf)
-        self.logger = logging.getLogger("myason_collector")
-
-    def run(self):
-        self.logger.info(f"{self.name}: up and running...")
-        while not self.stop.isSet():
-            try:
-                msg = self.messages.get(block=False)
-                if msg is not None:
-                    self.process_message(msg)
-            except queue.Empty:
-                time.sleep(0.5)
-
-    def join(self, timeout=None):
-        self.stop.set()
-        self.logger.info(f"{self.name}: stopping...")
-        self.clean_up()
-        super().join(timeout)
-        self.logger.info(f"{self.name}: stopped...")
-
-    def clean_up(self):
-        self.logger.info(f"{self.name}: processing remaining messages...")
-        while True:
-            try:
-                pkt = self.messages.get(block=False)
-                if pkt is not None:
-                    self.process_message(pkt)
-            except queue.Empty:
-                break
-
-    def process_message(self, msg):
-        if "DEBUG" == msg[0]:
-            self.logger.debug(msg[1])
-        elif "INFO" == msg[0]:
-            self.logger.info(msg[1])
-        elif "WARNING" == msg[0]:
-            self.logger.warning(msg[1])
-        elif "ERROR" == msg[0]:
-            self.logger.error(msg[1])
-        elif "CRITICAL" == msg[0]:
-            self.logger.critical(msg[1])
-        else:
-            self.logger.debug(msg[1])
-
-
-class Writer(threading.Thread):
-    worker_group = "writer"
-    worker_number = 0
-
-    def __init__(self, entries, messages):
-        super().__init__()
-        Writer.worker_number += 1
-        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
-        self.entries = entries
-        self.messages = messages
-        self.stop = threading.Event()
-
-    def run(self):
-        self.messages.put(("INFO", f"{self.name}: up and running..."))
-        while not self.stop.isSet():
-            try:
-                ent = self.entries.get(block=False)
-                if ent is not None:
-                    self.process_entry(ent)
-            except queue.Empty:
-                time.sleep(0.5)
-
-    def join(self, timeout=None):
-        self.stop.set()
-        self.messages.put(("INFO", f"{self.name}: stopping..."))
-        self.clean_up()
-        super().join(timeout)
-        self.messages.put(("INFO", f"{self.name}: stopped..."))
-
-    def clean_up(self):
-        self.messages.put(("INFO", f"{self.name}: processing remaining entries..."))
-        while True:
-            try:
-                ent = self.entries.get(block=False)
-                if ent is not None:
-                    self.process_entry(ent)
-            except queue.Empty:
-                break
-
-    def process_entry(self, entry):
-        pass
-
-
-class Processor(threading.Thread):
-    worker_group = "processor"
-    worker_number = 0
-
-    def __init__(self, records, entries, messages):
-        super().__init__()
-        Processor.worker_number += 1
-        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
-        self.records = records
-        self.entries = entries
-        self.messages = messages
-        self.stop = threading.Event()
-
-    def run(self):
-        self.messages.put(("INFO", f"{self.name}: up and running..."))
-        while not self.stop.isSet():
-            try:
-                rec = self.records.get(block=False)
-                if rec is not None:
-                    self.process_record(rec)
-            except queue.Empty:
-                time.sleep(0.5)
-
-    def join(self, timeout=None):
-        self.stop.set()
-        self.messages.put(("INFO", f"{self.name}: stopping..."))
-        self.clean_up()
-        super().join(timeout)
-        self.messages.put(("INFO", f"{self.name}: stopped..."))
-
-    def clean_up(self):
-        self.messages.put(("INFO", f"{self.name}: processing remaining records..."))
-        while True:
-            try:
-                rec = self.records.get(block=False)
-                if rec is not None:
-                    self.process_record(rec)
-            except queue.Empty:
-                break
-
-    def process_record(self, record):
-        data, ip = record
-        self.messages.put(("DEBUG", f"{self.name}: Processing record {data} received from {ip}"))
-
-
-class Listener(threading.Thread):
-    worker_group = "listener"
-    worker_number = 0
-
-    def __init__(self, records, messages, sock, address, port):
-        super().__init__()
-        Listener.worker_number += 1
-        self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
-        self.records = records
-        self.messages = messages
-        self.sock = sock
-        self.address = address
-        self.port = port
-        self.stop = threading.Event()
-
-    def run(self):
-        self.messages.put(("INFO", f"{self.name}: up and running..."))
-        self.sock.bind((self.address, self.port))
-        while not self.stop.isSet():
-            rlist, wlist, elist = select.select([self.sock], [], [], 1)
-            if rlist:
-                for sock in rlist:
-                    data, ip = sock.recvfrom(1024)
-                    self.messages.put(("DEBUG", f"{self.name}: from {ip} received {data}"))
-                    self.records.put((data, ip))
-
-    def join(self, timeout=None):
-        self.stop.set()
-        self.messages.put(("INFO", f"{self.name}: stopping..."))
-        self.clean_up()
-        super().join(timeout)
-        self.messages.put(("INFO", f"{self.name}: stopped..."))
-
-    def clean_up(self):
-        self.messages.put(("INFO", f"{self.name}: processing remaining records..."))
-
-
-def create_logger(name, configuration):
-    logging.config.dictConfig(configuration)
-    return logging.getLogger(name)
+from myason.collector.listener import Listener
+from myason.collector.messenger import Messenger
+from myason.collector.processor import Processor
+from myason.collector.writer import Writer
+from myason.helpers.logging import create_logger
+from myason.helpers.logging import logger_conf_loader
 
 
 def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
@@ -297,13 +115,6 @@ def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
     log.info("Collector configuration checks passed...")
     log.info("Starting the collector...")
     return True
-
-
-def logger_conf_loader(logger_conf_fn):
-    with open(logger_conf_fn) as conf_fn:
-        logger_conf = conf_fn.read()
-    logger_conf = yaml.load(logger_conf)
-    return logger_conf
 
 
 def collector_conf_loader(collector_conf_fn):

@@ -4,9 +4,9 @@
 
 import argparse
 
-import agent
-import collector
-import ifconfig
+from myason.agent import agent
+from myason.collector import collector
+from myason.ifconfig import adapters
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
         collector.collector()
     else:
         # Starts ifconfig
-        ifconfig.ifconfig()
+        adapters.ifconfig()
 
 
 if __name__ == '__main__':
