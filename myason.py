@@ -6,7 +6,7 @@ import argparse
 
 import agent
 import collector
-import ifconfig
+from myason.ifconfig import adapters
 
 
 def main():
@@ -16,10 +16,12 @@ def main():
     subparsers.required = True
     # Create the parser for "agent" command
     parser_agent = subparsers.add_parser(name="agent", help="agent help")
-    parser_agent.add_argument("-lc", "--agent-logger-conf", default="agent_logger.yml")
-    parser_agent.add_argument("-ac", "--agent-conf", default="agent.yml")
+    parser_agent.add_argument("-lc", "--agent-logger-conf", default="config/agent_logger.yml")
+    parser_agent.add_argument("-ac", "--agent-conf", default="config/agent.yml")
     # Create the parser for "collector" command
     parser_collector = subparsers.add_parser(name="collector", help="collector help")
+    parser_collector.add_argument("-lc", "--collector-logger-conf", default="config/collector_logger.yml")
+    parser_collector.add_argument("-ac", "--collector-conf", default="config/collector.yml")
     # Create the parser
     parser_ifconfig = subparsers.add_parser(name="ifconfig", help="Prints list of available adapters")
     # Parse arguments
@@ -28,14 +30,17 @@ def main():
         # Start agent
         agent.agent(
             agent_conf_fn=arguments.agent_conf,
-            logger_conf_fn=arguments.agent_logger_conf
+            logger_conf_fn=arguments.agent_logger_conf,
         )
     elif arguments.app == "collector":
         # Start collector
-        collector.collector()
+        collector.collector(
+            collector_conf_fn=arguments.collector_conf,
+            logger_conf_fn=arguments.collector_logger_conf,
+        )
     else:
         # Starts ifconfig
-        ifconfig.ifconfig()
+        adapters.get_adapters()
 
 
 if __name__ == '__main__':
