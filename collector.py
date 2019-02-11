@@ -9,6 +9,8 @@ import yaml
 import queue
 import threading
 import time
+import socket
+import select
 
 
 class Messenger(threading.Thread):
@@ -127,9 +129,9 @@ class Processor(threading.Thread):
         self.messages.put(("INFO", f"{self.name}: up and running..."))
         while not self.stop.isSet():
             try:
-                msg = self.records.get(block=False)
-                if msg is not None:
-                    self.process_record(msg)
+                rec = self.records.get(block=False)
+                if rec is not None:
+                    self.process_record(rec)
             except queue.Empty:
                 time.sleep(0.5)
 
@@ -151,28 +153,35 @@ class Processor(threading.Thread):
                 break
 
     def process_record(self, record):
-        pass
+        data, ip = record
+        self.messages.put(("DEBUG", f"{self.name}: Processing record {data} received from {ip}"))
 
 
 class Listener(threading.Thread):
     worker_group = "listener"
     worker_number = 0
 
-    def __init__(self, records, messages):
+    def __init__(self, records, messages, sock, address, port):
         super().__init__()
         Listener.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.records = records
         self.messages = messages
+        self.sock = sock
+        self.address = address
+        self.port = port
         self.stop = threading.Event()
 
     def run(self):
         self.messages.put(("INFO", f"{self.name}: up and running..."))
+        self.sock.bind((self.address, self.port))
         while not self.stop.isSet():
-            try:
-                time.sleep(0.5)
-            except queue.Empty:
-                time.sleep(0.5)
+            rlist, wlist, elist = select.select([self.sock], [], [], 1)
+            if rlist:
+                for sock in rlist:
+                    data, ip = sock.recvfrom(1024)
+                    self.messages.put(("DEBUG", f"{self.name}: from {ip} received {data}"))
+                    self.records.put((data, ip))
 
     def join(self, timeout=None):
         self.stop.set()
@@ -183,10 +192,6 @@ class Listener(threading.Thread):
 
     def clean_up(self):
         self.messages.put(("INFO", f"{self.name}: processing remaining records..."))
-        time.sleep(0.5)
-
-    def process_received_data(self, record):
-        time.sleep(0.5)
 
 
 def create_logger(name, configuration):
@@ -220,7 +225,6 @@ def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
         'disable_existing_loggers': False
     }
     log = create_logger('root', default_logging)
-    conf_ok = True
     #
     # Configurations sanity chacks
     #
@@ -290,13 +294,9 @@ def conf_is_ok(collector_logger_conf_fn, collector_conf_fn):
     #
     # Exiting sanity checks with the relevant message
     #
-    if conf_ok:
-        log.info("Collector configuration checks passed...")
-        log.info("Starting the collector...")
-        return True
-    else:
-        log.error("Collector configuration checks failed... Exiting!")
-        return False
+    log.info("Collector configuration checks passed...")
+    log.info("Starting the collector...")
+    return True
 
 
 def logger_conf_loader(logger_conf_fn):
@@ -319,6 +319,8 @@ def collector(logger_conf_fn, collector_conf_fn):
     # Load configurations
     logger_conf = logger_conf_loader(logger_conf_fn)
     collector_conf = collector_conf_loader(collector_conf_fn)
+    # Create socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # Create the messages queue
     msg_queue = queue.Queue()
     # Create the entries queue
@@ -327,7 +329,7 @@ def collector(logger_conf_fn, collector_conf_fn):
     rec_queue = queue.Queue()
     # Create the messenger worker
     messenger = Messenger(logger_conf, msg_queue)
-    # Start a stack of workers
+    # Create a stack of workers
     writers_number = collector_conf.get("writers_number", 1)
     writers = []
     processors_number = collector_conf.get("processors_number", 1)
@@ -339,7 +341,12 @@ def collector(logger_conf_fn, collector_conf_fn):
     for n in range(processors_number):
         processors.append(Processor(rec_queue, ent_queue, msg_queue))
     # Create the listener worker
-    listener = Listener(rec_queue, msg_queue)
+    listener = Listener(rec_queue,
+                        msg_queue,
+                        sock,
+                        collector_conf.get("bind_address", "127.0.0.1"),
+                        collector_conf.get("bind_port", 9999),
+                        )
     # Start the messenger worker
     messenger.start()
     # Start writers
