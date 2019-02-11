@@ -114,7 +114,7 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     if iflist is None:
         log.error(f"Missing interfaces in agent configuration file ({agent_conf_fn})... Exiting!")
         return False
-    if type(iflist) is not list:
+    if not isinstance(iflist, list):
         log.error(f"Interfaces in agent configuration file ({agent_conf_fn}) must be a list... Exiting!")
         return False
     #
