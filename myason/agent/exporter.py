@@ -3,6 +3,8 @@
 import queue
 import threading
 import time
+import json
+import base64
 
 
 class Exporter(threading.Thread):
@@ -31,8 +33,16 @@ class Exporter(threading.Thread):
                 time.sleep(0.5)
 
     def export_entry(self, entry):
-        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): {entry}"))
-        self.sock.sendto(str(entry).encode(), (self.address, self.port))
+        self.messages.put(("DEBUG", f"{self.name}: Processing flow entry {entry}"))
+        # Marshall entry (a dict()) to a json string
+        data = json.dumps(entry)
+        # Encode string
+        data = data.encode()
+        # Encode bytes to base 64
+        data = base64.b64encode(data)
+        # Send to collector
+        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): {data}"))
+        self.sock.sendto(data, (self.address, self.port))
 
     def join(self, timeout=None):
         self.stop.set()
