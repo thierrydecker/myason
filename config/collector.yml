@@ -6,3 +6,7 @@ bind_address: "127.0.0.1"
 bind_port: 9999
 writers_number: 5
 processors_number: 5
+
+agents: [
+  "127.0.0.1"
+]
