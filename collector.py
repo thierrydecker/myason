@@ -48,6 +48,7 @@ def collector(logger_conf_fn, collector_conf_fn):
                         sock,
                         collector_conf.get("bind_address", "127.0.0.1"),
                         collector_conf.get("bind_port", 9999),
+                        collector_conf.get("agents", [])
                         )
     # Start the messenger worker
     messenger.start()
