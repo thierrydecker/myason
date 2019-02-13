@@ -45,4 +45,6 @@ class Writer(threading.Thread):
                 break
 
     def process_entry(self, entry):
-        pass
+        ip = entry[0]
+        flow = entry[1]
+        self.messages.put(("DEBUG", f"{self.name}: processing {flow} entry received from {ip}..."))
