@@ -6,6 +6,7 @@ import queue
 import time
 import json
 import base64
+import binascii
 
 
 class Processor(threading.Thread):
@@ -51,10 +52,34 @@ class Processor(threading.Thread):
     def process_record(self, record):
         data, ip = record
         self.messages.put(("DEBUG", f"{self.name}: Processing record {data} received from {ip}"))
-        # Decode base 64
-        data = base64.b64decode(data)
-        # Decode to json string
-        data = data.decode()
-        # Unmarshall json string to dict
-        data = dict(json.loads(data))
-        self.messages.put(("DEBUG", f"{self.name}: Unmarshalled {data} received from {ip}"))
+        try:
+            # Decode base 64
+            data = base64.b64decode(data)
+            # Decode bytes
+            data = data.decode()
+            # Build a dictionary from json string
+            data = dict(json.loads(data))
+        except (binascii.Error, UnicodeError, json.JSONDecodeError) as e:
+            self.messages.put(("WARNING", f"{self.name}: {e} Record {data} received from {ip} was ignored!"))
+            return
+        # Data received sanity checks
+        flow_ids = list(data.keys())
+        for flow_id in flow_ids:
+            try:
+                length = int(data[flow_id]["bytes"])
+                packets = data[flow_id]["packets"]
+                start_time = data[flow_id]["start_time"]
+                end_time = data[flow_id]["end_time"]
+                flags = data[flow_id]["flags"]
+                flow = {
+                    flow_id: {
+                        "bytes": length,
+                        "packets": packets,
+                        "start_time": start_time,
+                        "end_time": end_time,
+                        'flags': flags,
+                    }
+                }
+                self.entries.put((ip, flow))
+            except (KeyError, ValueError) as e:
+                self.messages.put(("WARNING", f"{self.name}: {e} flow {flow_id} received from {ip} was ignored!"))
