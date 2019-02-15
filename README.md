@@ -185,5 +185,8 @@ We use fernet format for encrypting the payloads sent from agants to collectors
 This [document](https://github.com/fernet/spec/blob/master/Spec.md) describes version 0x80
 (currently the only version) of the fernet format.
 
+Each encrypted message (refered to as a "fernet token") is checked upon a maximum of 5 (five) seconds
+TTL and is rejected if older than this.
+
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
