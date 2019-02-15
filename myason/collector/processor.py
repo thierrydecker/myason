@@ -14,10 +14,12 @@ import cryptography
 class Processor(threading.Thread):
     worker_group = "processor"
     worker_number = 0
+    agents = {}
 
-    def __init__(self, records, entries, messages):
+    def __init__(self, agents, records, entries, messages):
         super().__init__()
         Processor.worker_number += 1
+        Processor.agents = agents
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.records = records
         self.entries = entries
@@ -56,9 +58,9 @@ class Processor(threading.Thread):
         self.messages.put(("DEBUG", f"{self.name}: Processing record {data} received from {ip}"))
         try:
             # Uncrypt data
-            key = 'raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI='.encode()
+            key = Processor.agents[ip[0]].encode()
             fernet = Fernet(key)
-            data = fernet.decrypt(data)
+            data = fernet.decrypt(data, ttl=5)
         except cryptography.fernet.InvalidToken:
             self.messages.put(
                 ("WARNING", f"{self.name}: Invalid token. Record {data} received from {ip} was ignored!")
