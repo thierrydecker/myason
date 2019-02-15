@@ -7,6 +7,8 @@ import time
 import json
 import base64
 import binascii
+from cryptography.fernet import Fernet
+import cryptography
 
 
 class Processor(threading.Thread):
@@ -52,6 +54,21 @@ class Processor(threading.Thread):
     def process_record(self, record):
         data, ip = record
         self.messages.put(("DEBUG", f"{self.name}: Processing record {data} received from {ip}"))
+        try:
+            # Uncrypt data
+            key = 'raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI='.encode()
+            fernet = Fernet(key)
+            data = fernet.decrypt(data)
+        except cryptography.fernet.InvalidToken:
+            self.messages.put(
+                ("WARNING", f"{self.name}: Invalid token. Record {data} received from {ip} was ignored!")
+            )
+            return
+        except TypeError:
+            self.messages.put(
+                ("WARNING", f"{self.name}: Token TypeError Record {data} received from {ip} was ignored!")
+            )
+            return
         try:
             # Decode base 64
             data = base64.b64decode(data)
