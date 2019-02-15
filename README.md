@@ -33,6 +33,7 @@ We strongly encourage using virtual environnements in the developement process.
             agent           agent help
             collector       server help
             ifconfig        Prints list of available adapters
+            keygen          Generates a Fernet key
 
     optional arguments:
 
@@ -63,6 +64,12 @@ We strongly encourage using virtual environnements in the developement process.
         optional arguments:
             -h, --help  show this help message and exit
 
+## Myason keygen:
+
+    python myason keygen [-h]
+
+        optional arguments:
+            -h, --help  show this help message and exit
 
 # Application architecture
 
