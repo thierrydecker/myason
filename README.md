@@ -112,7 +112,7 @@ send it to the exporter (if one exists) and delete the flow. This process is kno
 
 The cache only keeps information on current and non-expired flows.
 
-Each flow is defined as having values that match the followinf 7 fields uniquely:
+Each flow is defined as having values that match the following 7 fields uniquely:
 
 - Source IP address
 - Destination IP address
