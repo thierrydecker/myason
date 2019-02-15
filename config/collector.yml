@@ -10,6 +10,8 @@ processors_number: 5
 #
 # Agents white list
 # Adesses:Fernet key
+# Keep the secrets, SECRET!
+#
 agents: [
   "127.0.0.1":"raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI="
 ]
