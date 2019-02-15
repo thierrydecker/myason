@@ -7,6 +7,7 @@ import argparse
 import agent
 import collector
 from myason.ifconfig import adapters
+from myason.crypto import keygen
 
 
 def main():
@@ -22,8 +23,10 @@ def main():
     parser_collector = subparsers.add_parser(name="collector", help="collector help")
     parser_collector.add_argument("-lc", "--collector-logger-conf", default="config/collector_logger.yml")
     parser_collector.add_argument("-cc", "--collector-conf", default="config/collector.yml")
-    # Create the parser
+    # Create the parser for ifconfig
     parser_ifconfig = subparsers.add_parser(name="ifconfig", help="Prints list of available adapters")
+    # Create the parser for keygen
+    parser_keygen = subparsers.add_parser(name="keygen", help="Generates a Fernet key")
     # Parse arguments
     arguments = parser.parse_args()
     if arguments.app == "agent":
@@ -38,9 +41,12 @@ def main():
             collector_conf_fn=arguments.collector_conf,
             logger_conf_fn=arguments.collector_logger_conf,
         )
-    else:
+    elif arguments.app == "ifconfig":
         # Starts ifconfig
         adapters.get_adapters()
+    elif arguments.app == "keygen":
+        # Starts keygen
+        keygen.get_key()
 
 
 if __name__ == '__main__':
