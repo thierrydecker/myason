@@ -24,9 +24,10 @@ Myason developement is currently based on following technologies:
 We strongly encourage using virtual environnements in the developement process. 
 
 # Application usage
+
 ## Myason:
 
-    python myason.py [-h] {agent,collector,ifconfig} ...
+    python myason.py [-h] {agent,collector,ifconfig,keygen} ...
 
     positional arguments:
 
