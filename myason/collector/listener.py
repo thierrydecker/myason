@@ -8,12 +8,13 @@ import select
 class Listener(threading.Thread):
     worker_group = "listener"
     worker_number = 0
-    agents = []
+    agents = {}
 
     def __init__(self, records, messages, sock, address, port, agents):
         super().__init__()
         Listener.worker_number += 1
         Listener.agents = agents
+        print(f"Listener.agents: {Listener.agents}")
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.records = records
         self.messages = messages
@@ -43,4 +44,5 @@ class Listener(threading.Thread):
         if ip[0] in Listener.agents:
             self.records.put((data, ip))
         else:
-            self.messages.put(("WARNING", f"{self.name}: data from {ip} was ignored. Not in white list!"))
+            self.messages.put(
+                ("WARNING", f"{self.name}: data from {ip} was ignored. Not in {Listener.agents} white list!"))

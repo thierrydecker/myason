@@ -7,6 +7,13 @@ bind_port: 9999
 writers_number: 5
 processors_number: 5
 
-agents: [
-  "127.0.0.1"
-]
+#
+# Agents white list
+# {Adesses:Fernet key,...}
+#
+# Keep the secrets, SECRET!
+#
+agents: {
+  "127.0.0.1":"raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI=",
+  "127.0.0.2":"raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI="
+}
