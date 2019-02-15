@@ -16,16 +16,18 @@ of application flows transiting on a network of any size.
 Myason developement is currently based on following technologies:
 
 - [Python (3.7)](https://www.python.org)
-- [Scapy (2.4.2)](https://scapy.net/)
+- [Scapy (2.4.2)](https://scapy.net)
 - [PyYaml (3.13)](https://pyyaml.org/wiki/PyYAML)
 - [ifaddr (0.1.6)](https://github.com/pydron/ifaddr)
+- [cryptography (2.5)](https://pypi.org/project/cryptography)
 
 We strongly encourage using virtual environnements in the developement process. 
 
 # Application usage
+
 ## Myason:
 
-    python myason.py [-h] {agent,collector,ifconfig} ...
+    python myason.py [-h] {agent,collector,ifconfig,keygen} ...
 
     positional arguments:
 
@@ -33,6 +35,7 @@ We strongly encourage using virtual environnements in the developement process.
             agent           agent help
             collector       server help
             ifconfig        Prints list of available adapters
+            keygen          Generates a Fernet key
 
     optional arguments:
 
@@ -63,6 +66,12 @@ We strongly encourage using virtual environnements in the developement process.
         optional arguments:
             -h, --help  show this help message and exit
 
+## Myason keygen:
+
+    python myason keygen [-h]
+
+        optional arguments:
+            -h, --help  show this help message and exit
 
 # Application architecture
 
@@ -103,7 +112,7 @@ send it to the exporter (if one exists) and delete the flow. This process is kno
 
 The cache only keeps information on current and non-expired flows.
 
-Each flow is defined as having values that match the followinf 7 fields uniquely:
+Each flow is defined as having values that match the following 7 fields uniquely:
 
 - Source IP address
 - Destination IP address
@@ -166,6 +175,18 @@ Three thread type are running:
 - A (configurable number of) writer
 
 - A messenger
+
+## Payloads encryption
+
+### Fernet Spec
+
+We use fernet format for encrypting the payloads sent from agants to collectors
+
+This [document](https://github.com/fernet/spec/blob/master/Spec.md) describes version 0x80
+(currently the only version) of the fernet format.
+
+Each encrypted message (refered to as a "fernet token") is checked upon a maximum of 5 (five) seconds
+TTL and is rejected if older than this.
 
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)

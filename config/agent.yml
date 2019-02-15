@@ -25,3 +25,9 @@ cache_inactive_timeout: 15
 #
 collector_address: "127.0.0.1"
 collector_port: 9999
+
+#
+# Share key for messages encryption
+# Keep this secret, SECRET!
+#
+key: "raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI="

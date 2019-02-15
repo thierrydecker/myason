@@ -5,6 +5,7 @@ import threading
 import time
 import json
 import base64
+from cryptography.fernet import Fernet
 
 
 class Exporter(threading.Thread):
@@ -36,12 +37,20 @@ class Exporter(threading.Thread):
         self.messages.put(("DEBUG", f"{self.name}: Processing flow entry {entry}"))
         # Marshall entry (a dict()) to a json string
         data = json.dumps(entry)
+        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): json {data}"))
         # Encode string
         data = data.encode()
+        self.messages.put(
+            ("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): encoded {data}"))
         # Encode bytes to base 64
         data = base64.b64encode(data)
+        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): base64 {data}"))
+        # Crypt the data
+        key = 'raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI='.encode()
+        fernet = Fernet(key)
+        data = fernet.encrypt(data)
+        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): fernet {data}"))
         # Send to collector
-        self.messages.put(("DEBUG", f"{self.name}: Sending flow entry to ({self.address}, {self.port}): {data}"))
         self.sock.sendto(data, (self.address, self.port))
 
     def join(self, timeout=None):

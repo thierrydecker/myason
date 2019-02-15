@@ -9,6 +9,8 @@ import yaml
 
 from myason.helpers.logging import create_logger
 
+from cryptography.fernet import Fernet
+
 
 def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
     #
@@ -146,6 +148,21 @@ def conf_is_ok(agent_logger_conf_fn, agent_conf_fn):
         log.error(
             f"Interfaces in agent configuration file ({agent_conf_fn}), collector_address={collector_address} invalid..."
         )
+        return False
+    #
+    # Check fernet key presence
+    #
+    key = agent_conf.get("key", None)
+    if key is None:
+        log.error(f"Fernet key in agent configuration file ({agent_conf_fn}), is not present...")
+        return False
+    #
+    # Check key validity
+    #
+    try:
+        Fernet(key.encode())
+    except Exception as e:
+        log.error(f"Fernet key in agent configuration file ({agent_conf_fn}), is not valid... {e}")
         return False
     #
     # Exiting sanity checks with the relevant message
