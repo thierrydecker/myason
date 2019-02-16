@@ -16,10 +16,11 @@ class Processor(threading.Thread):
     worker_number = 0
     agents = {}
 
-    def __init__(self, agents, records, entries, messages):
+    def __init__(self, agents, records, entries, messages, token_ttl=5, ):
         super().__init__()
         Processor.worker_number += 1
         Processor.agents = agents
+        self.token_ttl = token_ttl
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.records = records
         self.entries = entries
@@ -60,7 +61,7 @@ class Processor(threading.Thread):
             # Uncrypt data
             key = Processor.agents[ip[0]].encode()
             fernet = Fernet(key)
-            data = fernet.decrypt(data, ttl=5)
+            data = fernet.decrypt(data, ttl=self.token_ttl)
         except cryptography.fernet.InvalidToken:
             self.messages.put(
                 ("WARNING", f"{self.name}: Invalid token. Record {data} received from {ip} was ignored!")
