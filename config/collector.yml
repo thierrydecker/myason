@@ -6,6 +6,7 @@ bind_address: "127.0.0.1"
 bind_port: 9999
 writers_number: 5
 processors_number: 5
+tokens_ttl: 5
 
 #
 # Agents white list
@@ -14,6 +15,6 @@ processors_number: 5
 # Keep the secrets, SECRET!
 #
 agents: {
-  "127.0.0.1":"raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI=",
-  "127.0.0.2":"raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI="
+  "127.0.0.1": "raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI=",
+  "127.0.0.2": "raQHLAAWepWDA9rxUCH5sP-FEMnMZ419B4zO7YmyeMI="
 }
