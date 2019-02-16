@@ -38,7 +38,12 @@ def collector(logger_conf_fn, collector_conf_fn):
     processors = []
     # Create writers
     for n in range(writers_number):
-        writers.append(Writer(ent_queue, msg_queue))
+        writers.append(
+            Writer(
+                entries=ent_queue,
+                messages=msg_queue,
+            )
+        )
     # Create processors
     for n in range(processors_number):
         processors.append(
@@ -46,17 +51,19 @@ def collector(logger_conf_fn, collector_conf_fn):
                 agents=collector_conf.get("agents"),
                 records=rec_queue,
                 entries=ent_queue,
-                messages=msg_queue
+                messages=msg_queue,
+                token_ttl=collector_conf.get("token_ttl", 5)
             )
         )
     # Create the listener worker
-    listener = Listener(rec_queue,
-                        msg_queue,
-                        sock,
-                        collector_conf.get("bind_address", "127.0.0.1"),
-                        collector_conf.get("bind_port", 9999),
-                        collector_conf.get("agents", {})
-                        )
+    listener = Listener(
+        records=rec_queue,
+        messages=msg_queue,
+        sock=sock,
+        address=collector_conf.get("bind_address", "127.0.0.1"),
+        port=collector_conf.get("bind_port", 9999),
+        agents=collector_conf.get("agents", {}),
+    )
     # Start the messenger worker
     messenger.start()
     # Start writers
