@@ -93,7 +93,6 @@ These threads communicate to each other by the mean of three thread-safe FIFO qu
 
 - A packets queue filled by the sniffer and consumed by the packet processor.
 
-
 - A flows entries queue filled by the packet processor and consumed by
 the exporter processor.
 
@@ -165,16 +164,46 @@ collector.
 
 ![Collector architecture](images/myason_collector_architecture.jpg)
 
-
 Three thread type are running:
 
-- A Listener
+- A Listener running in non-blocking mode, receiving UDP messages from agents.
 
 - A (configurable number of) processor
 
 - A (configurable number of) writer
 
 - A messenger
+
+These threads communicate to each other by the mean of three thread-safe FIFO queues:
+
+- A records queue filled by the listener and consumed by the processor.
+
+- A entries queue filled by the processor and consumed by
+the exporter.
+
+- A messages queue filled by the listener, the processors and the exporters
+and consumed by the message processor.
+
+### Listener
+
+A thread, socket bounded on configurable IP address and UDP port.
+
+### Processor
+
+The processors are in charge of:
+
+- Decrypting fernet tokens according to the keys associated to each agent.
+- Base 64 decoding of the received entries.
+- Building a dictionnary from the entries.
+- Verifying the conformance of the received entries.
+
+### Writer
+
+The writers are in charge of inserting the records in the Sqlite database.
+
+### Messenger
+
+The messenger is in charge of the logging of the other working threads.
 
 ## Payloads encryption
 
