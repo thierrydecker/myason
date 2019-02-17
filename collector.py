@@ -42,6 +42,7 @@ def collector(logger_conf_fn, collector_conf_fn):
             Writer(
                 entries=ent_queue,
                 messages=msg_queue,
+                dbname=collector_conf.get("db_name"),
             )
         )
     # Create processors
