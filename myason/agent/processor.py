@@ -68,10 +68,10 @@ class Processor(threading.Thread):
                 break
         self.messages.put(("INFO", f"{self.name}: packets queue has been cleaned..."))
 
-    def process_packet(self, pkt):
+    def process_packet(self, packet):
         # Separate data and interface name
-        pkt = pkt[0]
-        ifname = pkt[1]
+        pkt = packet[0]
+        ifname = packet[1]
         # Packets dissection
         if IP in pkt:
             self.messages.put(("DEBUG", f"{self.name}: Packet is IPv4..."))
