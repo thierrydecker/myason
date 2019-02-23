@@ -11,10 +11,23 @@ from scapy.layers.inet6 import IPv6
 
 
 class Processor(threading.Thread):
+    """The packets processor
+
+    """
     worker_group = "processor"
     worker_number = 0
 
     def __init__(self, packets, entries, messages, cache_limit, cache_active_timeout, cache_inactive_timeout):
+        """Initialization
+
+        Args:
+            packets: The thread safe FIFO queue to consume with captured packets
+            entries: The thread safe FIFO queue to feed with processed packets
+            messages: The thread safe FIFO queue to feed with logging messages
+            cache_limit: The cache size limit (in number of flows)
+            cache_active_timeout: The cache maximum active time for a flow
+            cache_inactive_timeout: The cache maximum inactive time for a flow
+        """
         super().__init__()
         Processor.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
@@ -55,7 +68,10 @@ class Processor(threading.Thread):
                 break
         self.messages.put(("INFO", f"{self.name}: packets queue has been cleaned..."))
 
-    def process_packet(self, pkt):
+    def process_packet(self, packet):
+        # Separate data and interface name
+        pkt = packet[0]
+        ifname = packet[1]
         # Packets dissection
         if IP in pkt:
             self.messages.put(("DEBUG", f"{self.name}: Packet is IPv4..."))
@@ -88,7 +104,8 @@ class Processor(threading.Thread):
             sport = 0
             dport = 0
             flags = None
-        key_field = f"{src_ip},{dst_ip},{proto},{sport},{dport},{tos}"
+        # Construct the dictionary key field
+        key_field = f"{ifname},{src_ip},{dst_ip},{proto},{sport},{dport},{tos}"
         # Cache management
         if key_field in self.cache:
             # Update cache entry
