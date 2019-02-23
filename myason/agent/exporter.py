@@ -9,10 +9,22 @@ from cryptography.fernet import Fernet
 
 
 class Exporter(threading.Thread):
+    """The exporter
+
+    """
     worker_group = "exporter"
     worker_number = 0
 
     def __init__(self, entries, messages, sock, address, port):
+        """Initialization
+
+        Args:
+            entries: The thread safe FIFO queue to consume with processed flows
+            messages: The thread safe FIFO queue to feed with logging messages
+            sock: The socket to send datagrams to
+            address: The collector IP address
+            port: The collector application port
+        """
         super().__init__()
         Exporter.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
