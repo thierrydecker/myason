@@ -59,12 +59,13 @@ class Writer(threading.Thread):
             try:
                 # Data extraction
                 flow_id_parts = flow_id.split(",")
-                src_ip = flow_id_parts[0]
-                dst_ip = flow_id_parts[1]
-                proto = flow_id_parts[2]
-                src_port = flow_id_parts[3]
-                dst_port = flow_id_parts[4]
-                tos = flow_id_parts[5]
+                ifname = flow_id_parts[0]
+                src_ip = flow_id_parts[1]
+                dst_ip = flow_id_parts[2]
+                proto = flow_id_parts[3]
+                src_port = flow_id_parts[4]
+                dst_port = flow_id_parts[5]
+                tos = flow_id_parts[6]
                 length = flow[flow_id]["bytes"]
                 packets = flow[flow_id]["packets"]
                 start_time = flow[flow_id]["start_time"]
@@ -79,6 +80,7 @@ class Writer(threading.Thread):
                         "uuid": flow_uuid,
                         "raw": str(flow),
                         "agent_address": agent_address,
+                        "ifname": ifname,
                         "src_ip": src_ip,
                         "dst_ip": dst_ip,
                         "proto": proto,
@@ -107,7 +109,8 @@ class Writer(threading.Thread):
                             packets,
                             start_time,
                             end_time,
-                            flags
+                            flags,
+                            ifname
                             )
                         VALUES (
                             :uuid,
@@ -123,7 +126,8 @@ class Writer(threading.Thread):
                             :packets,
                             :start_time,
                             :end_time,
-                            :flags
+                            :flags,
+                            :ifname
                             )
                         """,
                         data
