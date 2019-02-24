@@ -39,7 +39,7 @@ def agent(logger_conf_fn, agent_conf_fn):
             "sniffer": Sniffer(
                 pkt_queue,
                 msg_queue,
-                interface=interface,
+                ifname=interface,
             ),
             "processor": Processor(
                 pkt_queue,
