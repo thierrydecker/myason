@@ -5,6 +5,7 @@ import queue
 import time
 import uuid
 import sqlite3
+import math
 
 
 class Writer(threading.Thread):
@@ -93,6 +94,7 @@ class Writer(threading.Thread):
                         "end_time": end_time,
                         "flags": flags,
                     }
+                    # Flow recording
                     cursor.execute(
                         """
                         INSERT INTO flows(
@@ -133,6 +135,111 @@ class Writer(threading.Thread):
                         data
                     )
                     self.messages.put(("DEBUG", f"{self.name}: Inserted {flow_uuid} - {str(flow)} into flows..."))
+                    # Timeseries recording
+                    start_second = math.floor(start_time)
+                    end_second = math.ceil(end_time)
+                    duration = end_second - start_second
+                    if duration <= 1:
+                        # Only one record
+                        data = {
+                            "seconds": start_second,
+                            "uuid": flow_uuid,
+                            "agent_address": agent_address,
+                            "ifname": ifname,
+                            "src_ip": src_ip,
+                            "dst_ip": dst_ip,
+                            "proto": proto,
+                            "src_port": src_port,
+                            "dst_port": dst_port,
+                            "bytes": length,
+                            "packets": packets,
+                            "flows": 1,
+                        }
+                        cursor.execute(
+                            """
+                            INSERT INTO timeseries (
+                                seconds,
+                                uuid,
+                                agent_address,
+                                ifname,
+                                src_ip,
+                                dst_ip,
+                                proto,
+                                src_port,
+                                dst_port,
+                                bytes,
+                                packets,
+                                flows
+                                )
+                            VALUES (
+                                :seconds,
+                                :uuid,
+                                :agent_address,
+                                :ifname,
+                                :src_ip,
+                                :dst_ip,
+                                :proto,
+                                :src_port,
+                                :dst_port,
+                                :bytes,
+                                :packets,
+                                :flows
+                                )
+                            """,
+                            data
+                        )
+                        self.messages.put(("DEBUG", f"{self.name}: Inserted one record into timeseries..."))
+                    else:
+                        # Mutliple records
+                        for i in range(duration):
+                            data = {
+                                "seconds": start_second + i,
+                                "uuid": flow_uuid,
+                                "agent_address": agent_address,
+                                "ifname": ifname,
+                                "src_ip": src_ip,
+                                "dst_ip": dst_ip,
+                                "proto": proto,
+                                "src_port": src_port,
+                                "dst_port": dst_port,
+                                "bytes": length / duration,
+                                "packets": packets / duration,
+                                "flows": 1,
+                            }
+                            cursor.execute(
+                                """
+                                INSERT INTO timeseries (
+                                    seconds,
+                                    uuid,
+                                    agent_address,
+                                    ifname,
+                                    src_ip,
+                                    dst_ip,
+                                    proto,
+                                    src_port,
+                                    dst_port,
+                                    bytes,
+                                    packets,
+                                    flows
+                                    )
+                                VALUES (
+                                    :seconds,
+                                    :uuid,
+                                    :agent_address,
+                                    :ifname,
+                                    :src_ip,
+                                    :dst_ip,
+                                    :proto,
+                                    :src_port,
+                                    :dst_port,
+                                    :bytes,
+                                    :packets,
+                                    :flows
+                                    )
+                                """,
+                                data
+                            )
+                        self.messages.put(("DEBUG", f"{self.name}: Inserted {duration - 1} records into timeseries..."))
             except KeyError as e:
                 self.messages.put(("WARNING", f"{self.name}: Malformed flow record: {e}..."))
             except Exception as e:
