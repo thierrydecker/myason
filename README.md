@@ -217,5 +217,13 @@ This [document](https://github.com/fernet/spec/blob/master/Spec.md) describes ve
 Each encrypted message (refered to as a "fernet token") is checked upon a maximum of 5 (five) seconds
 TTL and is rejected if older than this.
 
+## Visualization
+
+![Basic flows](images/flows.png)
+
+![Basic flows](images/bytes.png)
+
+![Basic flows](images/packets.png)
+
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
