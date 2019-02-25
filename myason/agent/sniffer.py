@@ -41,7 +41,8 @@ class Sniffer(threading.Thread):
                 opened_socket=self.socket,
                 prn=self.process_packet,
                 stop_filter=self.should_stop_sniffer,
-                timeout=1.0
+                timeout=1.0,
+                monitor=True
             )
             if self.stop.isSet():
                 break
