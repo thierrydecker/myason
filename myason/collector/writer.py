@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import threading
 import queue
+import sqlite3
+import threading
 import time
 import uuid
-import sqlite3
+
 import math
 
 
