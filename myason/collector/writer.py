@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import datetime
 import queue
 import sqlite3
 import threading
 import time
 import uuid
+import arrow
 
+import influxdb
 import math
 
 
@@ -73,7 +76,7 @@ class Writer(threading.Thread):
                 start_time = flow[flow_id]["start_time"]
                 end_time = flow[flow_id]["end_time"]
                 flags = flow[flow_id]["flags"]
-                # Sqlite processing
+                # SQLite processing
                 self.messages.put(("DEBUG", f"{self.name}: Connecting to: {self.dbname}..."))
                 connection = sqlite3.connect(self.dbname)
                 cursor = connection.cursor()
@@ -241,7 +244,62 @@ class Writer(threading.Thread):
                                 data
                             )
                         self.messages.put(("DEBUG", f"{self.name}: Inserted {duration - 1} records into timeseries..."))
+                # InfluxDB processing
+                influx_user = 'myason_admin'
+                infux_password = 'zvxmhwfn'
+                influx_host = '192.168.237.3'
+                influx_port = "8086"
+                influx_dbname = 'myason'
+                json_body = []
+                client = influxdb.InfluxDBClient(influx_host, influx_port, influx_user, infux_password, influx_dbname)
+                if duration <= 1:
+                    json_body.extend([
+                        {
+                            "measurement": "activities",
+                            "tags": {
+                                "agent": agent_address,
+                                "ifname": ifname,
+                                "src_ip": src_ip,
+                                "dst_ip": dst_ip,
+                                "proto": proto,
+                                "src_port": src_port,
+                                "dst_port": dst_port,
+                            },
+                            "fields": {
+                                "bytes": float(length),
+                                "packets": float(packets),
+                                "flows": 1.,
+                            },
+                            "time": arrow.get(start_second).format('YYYY-MM-DD HH:mm:ss ZZ')
+                        }
+                    ])
+                else:
+                    for i in range(duration):
+                        json_body.extend([
+                            {
+                                "measurement": "activities",
+                                "tags": {
+                                    "agent": agent_address,
+                                    "ifname": ifname,
+                                    "src_ip": src_ip,
+                                    "dst_ip": dst_ip,
+                                    "proto": proto,
+                                    "src_port": src_port,
+                                    "dst_port": dst_port,
+                                },
+                                "fields": {
+                                    "bytes": float(length / duration),
+                                    "packets": float(packets / duration),
+                                    "flows": 1.,
+                                },
+                                "time": arrow.get(start_second + i).format('YYYY-MM-DD HH:mm:ss ZZ'),
+                            }
+                        ])
+                if client.write_points(json_body):
+                    self.messages.put(("DEBUG", f"{self.name}: Inserted {json_body} into InfluxDB..."))
+                else:
+                    self.messages.put(("WARNING", f"{self.name}: Couldn't write into InfluxDB..."))
             except KeyError as e:
                 self.messages.put(("WARNING", f"{self.name}: Malformed flow record: {e}..."))
             except Exception as e:
-                self.messages.put(("WARNING", f"{self.name}: Sqlite exception: {e}..."))
+                self.messages.put(("WARNING", f"{self.name}: Exception raised: {e}..."))
