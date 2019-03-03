@@ -15,18 +15,18 @@ class Writer(threading.Thread):
     worker_group = "writer"
     worker_number = 0
 
-    def __init__(self, entries, messages, dbname, influx_params={}):
+    def __init__(self, entries, messages, dbname, influx_params):
         super().__init__()
         Writer.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.entries = entries
         self.messages = messages
         self.dbname = dbname
-        self.influx_user = influx_params.get("influx_user", "myason_admin")
-        self.influx_password = influx_params.get("influx_password", "zvxmhwfn")
-        self.influx_host = influx_params.get("influx_host", "192.168.1.8")
-        self.influx_port = influx_params.get("influx_user", "8086")
-        self.influx_dbname = influx_params.get("influx_user", "myason")
+        self.influx_user = influx_params.get("influx_user")
+        self.influx_password = influx_params.get("influx_password")
+        self.influx_host = influx_params.get("influx_host")
+        self.influx_port = influx_params.get("influx_user")
+        self.influx_dbname = influx_params.get("influx_user")
         self.stop = threading.Event()
 
     def run(self):
