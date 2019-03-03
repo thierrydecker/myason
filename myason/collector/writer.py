@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import threading
 import queue
+import threading
 import time
 import uuid
-import sqlite3
+
+import arrow
+import influxdb
 import math
 
 
@@ -12,13 +14,18 @@ class Writer(threading.Thread):
     worker_group = "writer"
     worker_number = 0
 
-    def __init__(self, entries, messages, dbname):
+    def __init__(self, entries, messages, dbname, influx_params):
         super().__init__()
         Writer.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.entries = entries
         self.messages = messages
         self.dbname = dbname
+        self.influx_user = influx_params.get("user")
+        self.influx_password = influx_params.get("password")
+        self.influx_host = influx_params.get("host")
+        self.influx_port = influx_params.get("port")
+        self.influx_dbname = influx_params.get("dbname")
         self.stop = threading.Event()
 
     def run(self):
@@ -72,175 +79,70 @@ class Writer(threading.Thread):
                 start_time = flow[flow_id]["start_time"]
                 end_time = flow[flow_id]["end_time"]
                 flags = flow[flow_id]["flags"]
-                # Sqlite processing
-                self.messages.put(("DEBUG", f"{self.name}: Connecting to: {self.dbname}..."))
-                connection = sqlite3.connect(self.dbname)
-                cursor = connection.cursor()
-                with connection:
-                    data = {
-                        "uuid": flow_uuid,
-                        "raw": str(flow),
-                        "agent_address": agent_address,
-                        "ifname": ifname,
-                        "src_ip": src_ip,
-                        "dst_ip": dst_ip,
-                        "proto": proto,
-                        "src_port": src_port,
-                        "dst_port": dst_port,
-                        "tos": tos,
-                        "bytes": length,
-                        "packets": packets,
-                        "start_time": start_time,
-                        "end_time": end_time,
-                        "flags": flags,
-                    }
-                    # Flow recording
-                    cursor.execute(
-                        """
-                        INSERT INTO flows(
-                            uuid,
-                            raw,
-                            agent_address,
-                            src_ip,
-                            dst_ip,
-                            proto,
-                            src_port,
-                            dst_port,
-                            tos,
-                            bytes,
-                            packets,
-                            start_time,
-                            end_time,
-                            flags,
-                            ifname
-                            )
-                        VALUES (
-                            :uuid,
-                            :raw,
-                            :agent_address,
-                            :src_ip,
-                            :dst_ip,
-                            :proto,
-                            :src_port,
-                            :dst_port,
-                            :tos,
-                            :bytes,
-                            :packets,
-                            :start_time,
-                            :end_time,
-                            :flags,
-                            :ifname
-                            )
-                        """,
-                        data
-                    )
-                    self.messages.put(("DEBUG", f"{self.name}: Inserted {flow_uuid} - {str(flow)} into flows..."))
-                    # Timeseries recording
-                    start_second = math.floor(start_time)
-                    end_second = math.ceil(end_time)
-                    duration = end_second - start_second
-                    if duration <= 1:
-                        # Only one record
-                        data = {
-                            "seconds": start_second,
-                            "uuid": flow_uuid,
-                            "agent_address": agent_address,
-                            "ifname": ifname,
-                            "src_ip": src_ip,
-                            "dst_ip": dst_ip,
-                            "proto": proto,
-                            "src_port": src_port,
-                            "dst_port": dst_port,
-                            "bytes": length,
-                            "packets": packets,
-                            "flows": 1,
-                        }
-                        cursor.execute(
-                            """
-                            INSERT INTO timeseries (
-                                seconds,
-                                uuid,
-                                agent_address,
-                                ifname,
-                                src_ip,
-                                dst_ip,
-                                proto,
-                                src_port,
-                                dst_port,
-                                bytes,
-                                packets,
-                                flows
-                                )
-                            VALUES (
-                                :seconds,
-                                :uuid,
-                                :agent_address,
-                                :ifname,
-                                :src_ip,
-                                :dst_ip,
-                                :proto,
-                                :src_port,
-                                :dst_port,
-                                :bytes,
-                                :packets,
-                                :flows
-                                )
-                            """,
-                            data
-                        )
-                        self.messages.put(("DEBUG", f"{self.name}: Inserted one record into timeseries..."))
-                    else:
-                        # Mutliple records
-                        for i in range(duration):
-                            data = {
-                                "seconds": start_second + i,
-                                "uuid": flow_uuid,
-                                "agent_address": agent_address,
+                start_second = math.floor(start_time)
+                end_second = math.ceil(end_time)
+                duration = end_second - start_second
+                # InfluxDB processing
+                json_body = []
+                client = influxdb.InfluxDBClient(
+                    host=self.influx_host,
+                    port=self.influx_port,
+                    username=self.influx_user,
+                    password=self.influx_password,
+                    database=self.influx_dbname
+                )
+                if duration <= 1:
+                    json_body.extend([
+                        {
+                            "measurement": "activities",
+                            "tags": {
+                                "agent": agent_address,
                                 "ifname": ifname,
                                 "src_ip": src_ip,
                                 "dst_ip": dst_ip,
                                 "proto": proto,
                                 "src_port": src_port,
                                 "dst_port": dst_port,
-                                "bytes": length / duration,
-                                "packets": packets / duration,
-                                "flows": 1,
+                                "tos": tos,
+                                "flags": flags,
+                            },
+                            "fields": {
+                                "bytes": float(length),
+                                "packets": float(packets),
+                                "flows": 1.,
+                            },
+                            "time": arrow.get(start_second).format('YYYY-MM-DD HH:mm:ss ZZ')
+                        }
+                    ])
+                else:
+                    for i in range(duration):
+                        json_body.extend([
+                            {
+                                "measurement": "activities",
+                                "tags": {
+                                    "agent": agent_address,
+                                    "ifname": ifname,
+                                    "src_ip": src_ip,
+                                    "dst_ip": dst_ip,
+                                    "proto": proto,
+                                    "src_port": src_port,
+                                    "dst_port": dst_port,
+                                    "tos": tos,
+                                    "flags": flags,
+                                },
+                                "fields": {
+                                    "bytes": float(length / duration),
+                                    "packets": float(packets / duration),
+                                    "flows": 1.,
+                                },
+                                "time": arrow.get(start_second + i).format('YYYY-MM-DD HH:mm:ss ZZ'),
                             }
-                            cursor.execute(
-                                """
-                                INSERT INTO timeseries (
-                                    seconds,
-                                    uuid,
-                                    agent_address,
-                                    ifname,
-                                    src_ip,
-                                    dst_ip,
-                                    proto,
-                                    src_port,
-                                    dst_port,
-                                    bytes,
-                                    packets,
-                                    flows
-                                    )
-                                VALUES (
-                                    :seconds,
-                                    :uuid,
-                                    :agent_address,
-                                    :ifname,
-                                    :src_ip,
-                                    :dst_ip,
-                                    :proto,
-                                    :src_port,
-                                    :dst_port,
-                                    :bytes,
-                                    :packets,
-                                    :flows
-                                    )
-                                """,
-                                data
-                            )
-                        self.messages.put(("DEBUG", f"{self.name}: Inserted {duration - 1} records into timeseries..."))
+                        ])
+                if client.write_points(json_body):
+                    self.messages.put(("DEBUG", f"{self.name}: Inserted {json_body} into InfluxDB..."))
+                else:
+                    self.messages.put(("WARNING", f"{self.name}: Couldn't write into InfluxDB..."))
             except KeyError as e:
                 self.messages.put(("WARNING", f"{self.name}: Malformed flow record: {e}..."))
             except Exception as e:
-                self.messages.put(("WARNING", f"{self.name}: Sqlite exception: {e}..."))
+                self.messages.put(("WARNING", f"{self.name}: Exception raised: {e}..."))

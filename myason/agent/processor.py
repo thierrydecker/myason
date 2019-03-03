@@ -3,6 +3,7 @@
 import queue
 import threading
 import time
+import arrow
 
 from scapy.layers.inet import IP
 from scapy.layers.inet import TCP
@@ -112,7 +113,7 @@ class Processor(threading.Thread):
             self.messages.put(("DEBUG", f"{self.name}: Update entry in the cache..."))
             self.cache[key_field]["bytes"] += length
             self.cache[key_field]["packets"] += 1
-            self.cache[key_field]["end_time"] = time.time()
+            self.cache[key_field]["end_time"] = arrow.utcnow().float_timestamp
             self.cache[key_field]["flags"] = str(flags)
         else:
             # Add cache entry
@@ -120,8 +121,8 @@ class Processor(threading.Thread):
             non_key_fields = {
                 "bytes": length,
                 "packets": 1,
-                "start_time": time.time(),
-                "end_time": time.time(),
+                "start_time": arrow.utcnow().float_timestamp,
+                "end_time": arrow.utcnow().float_timestamp,
                 "flags": str(flags),
             }
             self.cache[key_field] = non_key_fields
