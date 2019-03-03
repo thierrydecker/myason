@@ -221,11 +221,15 @@ TTL and is rejected if older than this.
 
 ## Visualization
 
-![Basic flows](images/flows.png)
+Samples created with Grafana:
 
-![Basic flows](images/bytes.png)
+![grafana flows](images/grafana-01.PNG)
 
-![Basic flows](images/packets.png)
+![grafana flows](images/grafana-02.PNG)
+
+![grafana flows](images/grafana-03.PNG)
+
+![grafana flows](images/grafana-04.PNG)
 
 Code is automatically reviewed with 
 [![CodeFactor](https://www.codefactor.io/repository/github/thierrydecker/myason/badge)](https://www.codefactor.io/repository/github/thierrydecker/myason)
