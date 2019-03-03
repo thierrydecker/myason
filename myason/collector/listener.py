@@ -14,7 +14,6 @@ class Listener(threading.Thread):
         super().__init__()
         Listener.worker_number += 1
         Listener.agents = agents
-        print(f"Listener.agents: {Listener.agents}")
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.records = records
         self.messages = messages
