@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import queue
-import sqlite3
 import threading
 import time
 import uuid
@@ -80,174 +79,9 @@ class Writer(threading.Thread):
                 start_time = flow[flow_id]["start_time"]
                 end_time = flow[flow_id]["end_time"]
                 flags = flow[flow_id]["flags"]
-                # SQLite processing
-                self.messages.put(("DEBUG", f"{self.name}: Connecting to: {self.dbname}..."))
-                connection = sqlite3.connect(self.dbname)
-                cursor = connection.cursor()
-                with connection:
-                    data = {
-                        "uuid": flow_uuid,
-                        "raw": str(flow),
-                        "agent_address": agent_address,
-                        "ifname": ifname,
-                        "src_ip": src_ip,
-                        "dst_ip": dst_ip,
-                        "proto": proto,
-                        "src_port": src_port,
-                        "dst_port": dst_port,
-                        "tos": tos,
-                        "bytes": length,
-                        "packets": packets,
-                        "start_time": start_time,
-                        "end_time": end_time,
-                        "flags": flags,
-                    }
-                    # Flow recording
-                    cursor.execute(
-                        """
-                        INSERT INTO flows(
-                            uuid,
-                            raw,
-                            agent_address,
-                            src_ip,
-                            dst_ip,
-                            proto,
-                            src_port,
-                            dst_port,
-                            tos,
-                            bytes,
-                            packets,
-                            start_time,
-                            end_time,
-                            flags,
-                            ifname
-                            )
-                        VALUES (
-                            :uuid,
-                            :raw,
-                            :agent_address,
-                            :src_ip,
-                            :dst_ip,
-                            :proto,
-                            :src_port,
-                            :dst_port,
-                            :tos,
-                            :bytes,
-                            :packets,
-                            :start_time,
-                            :end_time,
-                            :flags,
-                            :ifname
-                            )
-                        """,
-                        data
-                    )
-                    self.messages.put(("DEBUG", f"{self.name}: Inserted {flow_uuid} - {str(flow)} into flows..."))
-                    # Timeseries recording
-                    start_second = math.floor(start_time)
-                    end_second = math.ceil(end_time)
-                    duration = end_second - start_second
-                    if duration <= 1:
-                        # Only one record
-                        data = {
-                            "seconds": start_second,
-                            "uuid": flow_uuid,
-                            "agent_address": agent_address,
-                            "ifname": ifname,
-                            "src_ip": src_ip,
-                            "dst_ip": dst_ip,
-                            "proto": proto,
-                            "src_port": src_port,
-                            "dst_port": dst_port,
-                            "bytes": length,
-                            "packets": packets,
-                            "flows": 1,
-                        }
-                        cursor.execute(
-                            """
-                            INSERT INTO timeseries (
-                                seconds,
-                                uuid,
-                                agent_address,
-                                ifname,
-                                src_ip,
-                                dst_ip,
-                                proto,
-                                src_port,
-                                dst_port,
-                                bytes,
-                                packets,
-                                flows
-                                )
-                            VALUES (
-                                :seconds,
-                                :uuid,
-                                :agent_address,
-                                :ifname,
-                                :src_ip,
-                                :dst_ip,
-                                :proto,
-                                :src_port,
-                                :dst_port,
-                                :bytes,
-                                :packets,
-                                :flows
-                                )
-                            """,
-                            data
-                        )
-                        self.messages.put(("DEBUG", f"{self.name}: Inserted one record into timeseries..."))
-                    else:
-                        # Mutliple records
-                        for i in range(duration):
-                            data = {
-                                "seconds": start_second + i,
-                                "uuid": flow_uuid,
-                                "agent_address": agent_address,
-                                "ifname": ifname,
-                                "src_ip": src_ip,
-                                "dst_ip": dst_ip,
-                                "proto": proto,
-                                "src_port": src_port,
-                                "dst_port": dst_port,
-                                "bytes": length / duration,
-                                "packets": packets / duration,
-                                "flows": 1,
-                            }
-                            cursor.execute(
-                                """
-                                INSERT INTO timeseries (
-                                    seconds,
-                                    uuid,
-                                    agent_address,
-                                    ifname,
-                                    src_ip,
-                                    dst_ip,
-                                    proto,
-                                    src_port,
-                                    dst_port,
-                                    bytes,
-                                    packets,
-                                    flows
-                                    )
-                                VALUES (
-                                    :seconds,
-                                    :uuid,
-                                    :agent_address,
-                                    :ifname,
-                                    :src_ip,
-                                    :dst_ip,
-                                    :proto,
-                                    :src_port,
-                                    :dst_port,
-                                    :bytes,
-                                    :packets,
-                                    :flows
-                                    )
-                                """,
-                                data
-                            )
-                        self.messages.put(("DEBUG", f"{self.name}: Inserted {duration - 1} records into timeseries..."))
+                start_second = math.floor(start_time)
+                end_second = math.ceil(end_time)
+                duration = end_second - start_second
                 # InfluxDB processing
                 json_body = []
                 client = influxdb.InfluxDBClient(
@@ -269,6 +103,8 @@ class Writer(threading.Thread):
                                 "proto": proto,
                                 "src_port": src_port,
                                 "dst_port": dst_port,
+                                "tos": tos,
+                                "flags": flags,
                             },
                             "fields": {
                                 "bytes": float(length),
@@ -291,6 +127,8 @@ class Writer(threading.Thread):
                                     "proto": proto,
                                     "src_port": src_port,
                                     "dst_port": dst_port,
+                                    "tos": tos,
+                                    "flags": flags,
                                 },
                                 "fields": {
                                     "bytes": float(length / duration),
