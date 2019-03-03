@@ -20,11 +20,6 @@ agents: {
 }
 
 #
-# Database (Sqlite 3)
-#
-db_name: "database/collector.db"
-
-#
 # Database (InfluxDB)
 #
 influx_params: {
