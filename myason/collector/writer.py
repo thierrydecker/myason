@@ -25,7 +25,7 @@ class Writer(threading.Thread):
         self.influx_user = influx_params.get("user")
         self.influx_password = influx_params.get("password")
         self.influx_host = influx_params.get("host")
-        self.influx_port = influx_params.get("user")
+        self.influx_port = influx_params.get("port")
         self.influx_dbname = influx_params.get("dbname")
         self.stop = threading.Event()
 
@@ -249,13 +249,14 @@ class Writer(threading.Thread):
                             )
                         self.messages.put(("DEBUG", f"{self.name}: Inserted {duration - 1} records into timeseries..."))
                 # InfluxDB processing
-                influx_user = self.influx_user
-                infux_password = self.influx_password
-                influx_host = self.influx_host
-                influx_port = self.influx_port
-                influx_dbname = self.influx_dbname
                 json_body = []
-                client = influxdb.InfluxDBClient(influx_host, influx_port, influx_user, infux_password, influx_dbname)
+                client = influxdb.InfluxDBClient(
+                    host=self.influx_host,
+                    port=self.influx_port,
+                    username=self.influx_user,
+                    password=self.influx_password,
+                    database=self.influx_dbname
+                )
                 if duration <= 1:
                     json_body.extend([
                         {
