@@ -28,9 +28,9 @@ db_name: "database/collector.db"
 # Database (InfluxDB)
 #
 influx_params: {
-  "influx_user": "myason_admin",
-  "influx_password": "zvxmhwfn",
-  "influx_host": "192.168.1.8",
-  "influx_port": "8086",
-  "influx_dbname": "myason"
+  "user": "myason_admin",
+  "password": "zvxmhwfn",
+  "host": "192.168.1.8",
+  "port": "8086",
+  "dbname": "myason"
 }
