@@ -22,11 +22,11 @@ class Writer(threading.Thread):
         self.entries = entries
         self.messages = messages
         self.dbname = dbname
-        self.influx_user = influx_params.get("influx_user")
-        self.influx_password = influx_params.get("influx_password")
-        self.influx_host = influx_params.get("influx_host")
-        self.influx_port = influx_params.get("influx_user")
-        self.influx_dbname = influx_params.get("influx_user")
+        self.influx_user = influx_params.get("user")
+        self.influx_password = influx_params.get("password")
+        self.influx_host = influx_params.get("host")
+        self.influx_port = influx_params.get("user")
+        self.influx_dbname = influx_params.get("dbname")
         self.stop = threading.Event()
 
     def run(self):
