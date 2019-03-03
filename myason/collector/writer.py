@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import datetime
 import queue
 import sqlite3
 import threading
 import time
 import uuid
-import arrow
 
+import arrow
 import influxdb
 import math
 
@@ -16,13 +15,18 @@ class Writer(threading.Thread):
     worker_group = "writer"
     worker_number = 0
 
-    def __init__(self, entries, messages, dbname):
+    def __init__(self, entries, messages, dbname, influx_params={}):
         super().__init__()
         Writer.worker_number += 1
         self.name = f"{self.worker_group}_{format(self.worker_number, '0>3')}"
         self.entries = entries
         self.messages = messages
         self.dbname = dbname
+        self.influx_user = influx_params.get("influx_user", "myason_admin")
+        self.influx_password = influx_params.get("influx_password", "zvxmhwfn")
+        self.influx_host = influx_params.get("influx_host", "192.168.1.8")
+        self.influx_port = influx_params.get("influx_user", "8086")
+        self.influx_dbname = influx_params.get("influx_user", "myason")
         self.stop = threading.Event()
 
     def run(self):
@@ -245,11 +249,11 @@ class Writer(threading.Thread):
                             )
                         self.messages.put(("DEBUG", f"{self.name}: Inserted {duration - 1} records into timeseries..."))
                 # InfluxDB processing
-                influx_user = 'myason_admin'
-                infux_password = 'zvxmhwfn'
-                influx_host = '192.168.237.3'
-                influx_port = "8086"
-                influx_dbname = 'myason'
+                influx_user = self.influx_user
+                infux_password = self.influx_password
+                influx_host = self.influx_host
+                influx_port = self.influx_port
+                influx_dbname = self.influx_dbname
                 json_body = []
                 client = influxdb.InfluxDBClient(influx_host, influx_port, influx_user, infux_password, influx_dbname)
                 if duration <= 1:
