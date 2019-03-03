@@ -43,6 +43,7 @@ def collector(logger_conf_fn, collector_conf_fn):
                 entries=ent_queue,
                 messages=msg_queue,
                 dbname=collector_conf.get("db_name"),
+                influx_params=collector_conf.get("influx_params")
             )
         )
     # Create processors
