@@ -18,8 +18,10 @@ Myason developement is currently based on following technologies:
 - [Python (3.7)](https://www.python.org)
 - [Scapy (2.4.2)](https://scapy.net)
 - [PyYaml (3.13)](https://pyyaml.org/wiki/PyYAML)
-- [ifaddr (0.1.6)](https://github.com/pydron/ifaddr)
-- [cryptography (2.5)](https://pypi.org/project/cryptography)
+- [Ifaddr (0.1.6)](https://github.com/pydron/ifaddr)
+- [Cryptography (2.5)](https://pypi.org/project/cryptography)
+- [Arrow (0.13.1)](https://pypi.org/project/arrow/)
+- [InfluxDB client (5.2.1)](https://github.com/influxdata/influxdb-python)
 
 We strongly encourage using virtual environnements in the developement process. 
 
@@ -199,7 +201,7 @@ The processors are in charge of:
 
 ### Writer
 
-The writers are in charge of inserting the records in the Sqlite database.
+The writers are in charge of inserting the records in the InfluxDB TSDB.
 
 ### Messenger
 
