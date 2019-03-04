@@ -5,6 +5,7 @@ import threading
 import time
 import arrow
 
+from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP
 from scapy.layers.inet import TCP
 from scapy.layers.inet import UDP
@@ -73,6 +74,7 @@ class Processor(threading.Thread):
         # Separate data and interface name
         pkt = packet[0]
         ifname = packet[1]
+        ethertype = pkt[Ether].type
         # Packets dissection
         if IP in pkt:
             self.messages.put(("DEBUG", f"{self.name}: Packet is IPv4..."))
@@ -106,7 +108,7 @@ class Processor(threading.Thread):
             dport = 0
             flags = None
         # Construct the dictionary key field
-        key_field = f"{ifname},{src_ip},{dst_ip},{proto},{sport},{dport},{tos}"
+        key_field = f"{ifname},{src_ip},{dst_ip},{proto},{sport},{dport},{tos},{ethertype}"
         # Cache management
         if key_field in self.cache:
             # Update cache entry

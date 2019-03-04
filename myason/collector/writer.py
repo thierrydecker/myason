@@ -74,6 +74,7 @@ class Writer(threading.Thread):
                 src_port = flow_id_parts[4]
                 dst_port = flow_id_parts[5]
                 tos = flow_id_parts[6]
+                ethertype = flow_id_parts[7]
                 length = flow[flow_id]["bytes"]
                 packets = flow[flow_id]["packets"]
                 start_time = flow[flow_id]["start_time"]
@@ -105,6 +106,7 @@ class Writer(threading.Thread):
                                 "dst_port": dst_port,
                                 "tos": tos,
                                 "flags": flags,
+                                "ethertype": ethertype,
                             },
                             "fields": {
                                 "bytes": float(length),
@@ -129,6 +131,7 @@ class Writer(threading.Thread):
                                     "dst_port": dst_port,
                                     "tos": tos,
                                     "flags": flags,
+                                    "ethertype": ethertype,
                                 },
                                 "fields": {
                                     "bytes": float(length / duration),
